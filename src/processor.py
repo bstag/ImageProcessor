@@ -8,6 +8,26 @@ pillow_heif.register_heif_opener()
 
 class ImageProcessor:
     @staticmethod
+    def center_crop_to_aspect(image, target_w, target_h):
+        w, h = image.size
+        if target_w <= 0 or target_h <= 0:
+            return image
+        target_ratio = target_w / target_h
+        current_ratio = w / h
+        if current_ratio > target_ratio:
+            new_w = int(h * target_ratio)
+            left = (w - new_w) // 2
+            right = left + new_w
+            top = 0
+            bottom = h
+        else:
+            new_h = int(w / target_ratio)
+            top = (h - new_h) // 2
+            bottom = top + new_h
+            left = 0
+            right = w
+        return image.crop((left, top, right, bottom))
+    @staticmethod
     def apply_enhancements(image, brightness=1.0, contrast=1.0, sharpness=1.0, saturation=1.0):
         """
         Applies color and sharpness enhancements to the image.

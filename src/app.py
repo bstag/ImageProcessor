@@ -69,6 +69,23 @@ with st.sidebar.expander("Transforms"):
         flip_v = st.checkbox("Flip Vertical")
     grayscale = st.checkbox("Convert to Grayscale")
 
+with st.sidebar.expander("Crop"):
+    crop_mode = st.selectbox("Crop Mode", ["None", "Custom Box", "Aspect Center"])
+    if crop_mode == "Custom Box":
+        c1, c2 = st.columns(2)
+        with c1:
+            crop_left = st.number_input("Left", min_value=0, value=0)
+            crop_top = st.number_input("Top", min_value=0, value=0)
+        with c2:
+            crop_right = st.number_input("Right", min_value=0, value=0)
+            crop_bottom = st.number_input("Bottom", min_value=0, value=0)
+    elif crop_mode == "Aspect Center":
+        a1, a2 = st.columns(2)
+        with a1:
+            crop_aspect_w = st.number_input("Aspect Width", min_value=1, value=1)
+        with a2:
+            crop_aspect_h = st.number_input("Aspect Height", min_value=1, value=1)
+
 # File Uploader
 uploaded_files = st.file_uploader("Upload Images", type=['png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif'], accept_multiple_files=True)
 
@@ -95,6 +112,20 @@ if uploaded_files:
                 # 0. Enhancements & Transforms (New)
                 image = ImageProcessor.apply_enhancements(image, brightness, contrast, sharpness, saturation)
                 image = ImageProcessor.apply_transforms(image, rotate, flip_h, flip_v, grayscale)
+
+                # Crop
+                if 'crop_mode' in locals() and crop_mode != "None":
+                    if crop_mode == "Custom Box":
+                        iw, ih = image.size
+                        l = max(0, min(iw, int(crop_left)))
+                        t = max(0, min(ih, int(crop_top)))
+                        r_in = int(crop_right) if crop_right > 0 else iw
+                        b_in = int(crop_bottom) if crop_bottom > 0 else ih
+                        r = max(l + 1, min(iw, r_in))
+                        b = max(t + 1, min(ih, b_in))
+                        image = ImageProcessor.crop_image(image, l, t, r, b)
+                    elif crop_mode == "Aspect Center":
+                        image = ImageProcessor.center_crop_to_aspect(image, int(crop_aspect_w), int(crop_aspect_h))
 
                 # 1. Resize
                 if resize_type != "None":
