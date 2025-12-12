@@ -134,9 +134,10 @@ class ImageProcessor:
         # Metadata stripping is implicit if we don't copy exif, but we can be explicit
         if strip_metadata:
              # Create a new image data without metadata
-             data = list(image.getdata())
+             # Optimized: Efficiently copy pixel data to new image without metadata
+             # Previous implementation using list(getdata()) was O(N) in Python space
              image_without_exif = Image.new(image.mode, image.size)
-             image_without_exif.putdata(data)
+             image_without_exif.paste(image)
              image = image_without_exif
 
         image.save(output, **save_args)
