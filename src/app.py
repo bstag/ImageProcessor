@@ -98,7 +98,7 @@ with st.sidebar.expander("Enhancements"):
     sharpness = st.slider("Sharpness", 0.0, 3.0, 1.0, 0.1, help="Adjust the sharpness of edges.")
 
 with st.sidebar.expander("Transforms"):
-    rotate = st.selectbox("Rotate", [0, 90, 180, 270], help="Rotate the image counter-clockwise.")
+    rotate = st.selectbox("Rotate", [0, 90, 180, 270], help="Rotate the image clockwise.")
     col1, col2 = st.columns(2)
     with col1:
         flip_h = st.checkbox("Flip Horizontal", help="Mirror the image horizontally.")
