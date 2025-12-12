@@ -2,6 +2,7 @@ import streamlit as st
 from PIL import Image
 import io
 import zipfile
+import os
 from processor import ImageProcessor
 from utils import format_bytes, get_unique_filename
 
@@ -173,7 +174,9 @@ if uploaded_files:
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, "w") as zf:
             for item in st.session_state.processed_images:
-                file_name = f"processed_{item['name'].rsplit('.', 1)[0]}.{output_format.lower()}"
+                # Security: Sanitize filename to prevent zip slip/path traversal
+                safe_name = os.path.basename(item['name'])
+                file_name = f"processed_{safe_name.rsplit('.', 1)[0]}.{output_format.lower()}"
                 zf.writestr(file_name, item['data'].getvalue())
         
         st.download_button(
@@ -186,7 +189,10 @@ if uploaded_files:
         # Individual Previews
         st.subheader("Detailed Results")
         for item in st.session_state.processed_images:
-            with st.expander(f"{item['name']} -> {format_bytes(item['processed_size'])}"):
+            # Security: Sanitize filename for display and download
+            safe_name = os.path.basename(item['name'])
+
+            with st.expander(f"{safe_name} -> {format_bytes(item['processed_size'])}"):
                 col1, col2 = st.columns(2)
                 with col1:
                     st.image(item['original_image'], caption=f"Original ({format_bytes(item['original_size'])})", use_container_width=True)
@@ -194,9 +200,9 @@ if uploaded_files:
                     st.image(item['image'], caption=f"Processed ({format_bytes(item['processed_size'])})", use_container_width=True)
                 
                 st.download_button(
-                    label=f"Download {item['name']}",
+                    label=f"Download {safe_name}",
                     data=item['data'].getvalue(),
-                    file_name=f"processed_{item['name'].rsplit('.', 1)[0]}.{output_format.lower()}",
+                    file_name=f"processed_{safe_name.rsplit('.', 1)[0]}.{output_format.lower()}",
                     mime=f"image/{output_format.lower()}"
                 )
 
