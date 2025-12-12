@@ -114,8 +114,8 @@ with st.sidebar.expander("Crop"):
             crop_left = st.number_input("Left", min_value=0, value=0, help="Pixels to crop from left.")
             crop_top = st.number_input("Top", min_value=0, value=0, help="Pixels to crop from top.")
         with c2:
-            crop_right = st.number_input("Right", min_value=0, value=0, help="Right coordinate (leave 0 for full width).")
-            crop_bottom = st.number_input("Bottom", min_value=0, value=0, help="Bottom coordinate (leave 0 for full height).")
+            crop_right = st.number_input("Right", min_value=0, value=0, help="Pixels to crop from right.")
+            crop_bottom = st.number_input("Bottom", min_value=0, value=0, help="Pixels to crop from bottom.")
     elif crop_mode == "Aspect Center":
         a1, a2 = st.columns(2)
         with a1:
