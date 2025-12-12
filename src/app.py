@@ -72,13 +72,14 @@ with st.sidebar.expander("Transforms"):
 # File Uploader
 uploaded_files = st.file_uploader("Upload Images", type=['png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif'], accept_multiple_files=True)
 
+if 'processed_images' not in st.session_state:
+    st.session_state.processed_images = None
+
 if uploaded_files:
     st.subheader(f"Processing {len(uploaded_files)} Images")
     
     if st.button("Process Images"):
         processed_images = []
-        total_original_size = 0
-        total_processed_size = 0
         
         progress_bar = st.progress(0)
         
@@ -86,8 +87,9 @@ if uploaded_files:
             # Load Image
             try:
                 image = Image.open(uploaded_file)
+                # Keep a copy of original for display
+                original_image = image.copy()
                 original_size = uploaded_file.size
-                total_original_size += original_size
                 
                 # Process
                 # 0. Enhancements & Transforms (New)
@@ -101,23 +103,34 @@ if uploaded_files:
                 # 2. Save/Optimize
                 output_io = ImageProcessor.process_and_save(image, output_format, quality, optimize=True, strip_metadata=strip_metadata, lossless=lossless)
                 processed_size = output_io.getbuffer().nbytes
-                total_processed_size += processed_size
                 
                 processed_images.append({
                     "name": uploaded_file.name,
                     "original_size": original_size,
                     "processed_size": processed_size,
                     "data": output_io,
-                    "image": image # The PIL image object for display
+                    "image": image, # The PIL image object for display
+                    "original_image": original_image # Store original for comparison
                 })
             except Exception as e:
                 st.error(f"Error processing {uploaded_file.name}: {e}")
             
             progress_bar.progress((idx + 1) / len(uploaded_files))
-            
-        # Results Display
-        st.success("Processing Complete!")
         
+        # Store in session state
+        st.session_state.processed_images = processed_images
+        st.success("Processing Complete!")
+
+    # Display Results if available in session state
+    if st.session_state.processed_images:
+        if st.button("Clear Results"):
+            st.session_state.processed_images = None
+            st.rerun()
+
+        # Recalculate totals for display
+        total_original_size = sum(item['original_size'] for item in st.session_state.processed_images)
+        total_processed_size = sum(item['processed_size'] for item in st.session_state.processed_images)
+
         # Summary Metrics
         col1, col2, col3 = st.columns(3)
         col1.metric("Total Original Size", format_bytes(total_original_size))
@@ -128,7 +141,7 @@ if uploaded_files:
         # Zip Download
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, "w") as zf:
-            for item in processed_images:
+            for item in st.session_state.processed_images:
                 file_name = f"processed_{item['name'].rsplit('.', 1)[0]}.{output_format.lower()}"
                 zf.writestr(file_name, item['data'].getvalue())
         
@@ -141,11 +154,11 @@ if uploaded_files:
         
         # Individual Previews
         st.subheader("Detailed Results")
-        for item in processed_images:
+        for item in st.session_state.processed_images:
             with st.expander(f"{item['name']} -> {format_bytes(item['processed_size'])}"):
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.image(uploaded_file, caption=f"Original ({format_bytes(item['original_size'])})", use_container_width=True)
+                    st.image(item['original_image'], caption=f"Original ({format_bytes(item['original_size'])})", use_container_width=True)
                 with col2:
                     st.image(item['image'], caption=f"Processed ({format_bytes(item['processed_size'])})", use_container_width=True)
                 
