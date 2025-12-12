@@ -176,7 +176,16 @@ if uploaded_files:
             for item in st.session_state.processed_images:
                 # Security: Sanitize filename to prevent zip slip/path traversal
                 safe_name = os.path.basename(item['name'])
-                file_name = f"processed_{safe_name.rsplit('.', 1)[0]}.{output_format.lower()}"
+                if not safe_name:
+                    safe_name = "image"
+
+                # Handle filename without extension
+                if '.' in safe_name:
+                    name_stem = safe_name.rsplit('.', 1)[0]
+                else:
+                    name_stem = safe_name
+
+                file_name = f"processed_{name_stem}.{output_format.lower()}"
                 zf.writestr(file_name, item['data'].getvalue())
         
         st.download_button(
@@ -191,6 +200,14 @@ if uploaded_files:
         for item in st.session_state.processed_images:
             # Security: Sanitize filename for display and download
             safe_name = os.path.basename(item['name'])
+            if not safe_name:
+                safe_name = "image"
+
+            # Handle filename without extension for constructing new name
+            if '.' in safe_name:
+                name_stem = safe_name.rsplit('.', 1)[0]
+            else:
+                name_stem = safe_name
 
             with st.expander(f"{safe_name} -> {format_bytes(item['processed_size'])}"):
                 col1, col2 = st.columns(2)
@@ -202,7 +219,7 @@ if uploaded_files:
                 st.download_button(
                     label=f"Download {safe_name}",
                     data=item['data'].getvalue(),
-                    file_name=f"processed_{safe_name.rsplit('.', 1)[0]}.{output_format.lower()}",
+                    file_name=f"processed_{name_stem}.{output_format.lower()}",
                     mime=f"image/{output_format.lower()}"
                 )
 
