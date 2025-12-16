@@ -21,6 +21,10 @@ A powerful, user-friendly web application built with **Streamlit** and **Pillow 
 ### 3. Built-in Image Editor
 *   **Enhancements**: Adjust Brightness, Contrast, Saturation, and Sharpness.
 *   **Transforms**: Rotate (90° steps), Flip Horizontal/Vertical.
+*   **Cropping**: Custom box crop or aspect-ratio based center crop.
+*   **Transparency**:
+    *   **Detection**: Automatically detects if uploaded images contain transparency.
+    *   **Color Replacement**: Replace a specific solid color (e.g., white background) with transparency using adjustable tolerance.
 *   **Filters**: One-click Grayscale conversion.
 *   *Note: All edits are applied before resizing to ensure maximum output quality.*
 
