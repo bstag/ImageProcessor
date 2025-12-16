@@ -124,6 +124,14 @@ with st.sidebar.expander("Crop"):
         with a2:
             crop_aspect_h = st.number_input("Aspect Height", min_value=1, value=1, help="Height ratio (e.g., 9 for 16:9).")
 
+with st.sidebar.expander("Transparency"):
+    replace_color = st.checkbox("Replace Color with Transparency", help="Make a specific color transparent.")
+    if replace_color:
+        trans_color = st.color_picker("Color to Replace", "#FFFFFF", help="Choose the color to make transparent.")
+        trans_tolerance = st.slider("Tolerance", 0, 100, 10, help="How much variation in color to accept.")
+        if output_format in ['JPEG', 'BMP']:
+            st.warning("Selected output format does not support transparency!")
+
 # File Uploader
 uploaded_files = st.file_uploader(
     "Upload Images",
@@ -170,10 +178,19 @@ if uploaded_files:
                     elif crop_mode == "Aspect Center":
                         image = ImageProcessor.center_crop_to_aspect(image, int(crop_aspect_w), int(crop_aspect_h))
 
+                # Transparency Replacement
+                if 'replace_color' in locals() and replace_color:
+                    tc = trans_color.lstrip('#')
+                    rgb_color = tuple(int(tc[i:i+2], 16) for i in (0, 2, 4))
+                    image = ImageProcessor.replace_color_with_transparency(image, rgb_color, trans_tolerance)
+
                 # 1. Resize
                 if resize_type != "None":
                     image = ImageProcessor.resize_image(image, width, height, percentage, maintain_aspect)
                 
+                # Check transparency
+                original_has_transparency = ImageProcessor.has_transparency(original_image)
+
                 # 2. Save/Optimize
                 output_io = ImageProcessor.process_and_save(image, output_format, quality, optimize=True, strip_metadata=strip_metadata, lossless=lossless)
                 processed_size = output_io.getbuffer().nbytes
@@ -184,7 +201,8 @@ if uploaded_files:
                     "processed_size": processed_size,
                     "data": output_io,
                     "image": image, # The PIL image object for display
-                    "original_image": original_image # Store original for comparison
+                    "original_image": original_image, # Store original for comparison
+                    "has_transparency": original_has_transparency
                 })
             except Exception as e:
                 st.error(f"Error processing {uploaded_file.name}: {e}")
@@ -253,6 +271,9 @@ if uploaded_files:
                 name_stem = safe_name
 
             with st.expander(f"{safe_name} -> {format_bytes(item['processed_size'])}"):
+                if item.get("has_transparency"):
+                    st.caption("ℹ️ Original image has transparency")
+                
                 col1, col2 = st.columns(2)
                 with col1:
                     st.image(item['original_image'], caption=f"Original ({format_bytes(item['original_size'])})", use_container_width=True)

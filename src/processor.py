@@ -111,6 +111,40 @@ class ImageProcessor:
         return image.crop((left, top, right, bottom))
 
     @staticmethod
+    def has_transparency(image):
+        """
+        Checks if the image has transparency (alpha channel or transparency info).
+        """
+        if image.mode in ('RGBA', 'LA') or (image.mode == 'P' and 'transparency' in image.info):
+            return True
+        return False
+
+    @staticmethod
+    def replace_color_with_transparency(image, target_color, tolerance=0):
+        """
+        Replaces a target color with transparency.
+        target_color: tuple (R, G, B)
+        tolerance: int (0-255)
+        """
+        image = image.convert("RGBA")
+        datas = image.getdata()
+        
+        new_data = []
+        r_target, g_target, b_target = target_color[:3]
+        
+        for item in datas:
+            # item is (R, G, B, A)
+            if (abs(item[0] - r_target) <= tolerance and
+                abs(item[1] - g_target) <= tolerance and
+                abs(item[2] - b_target) <= tolerance):
+                new_data.append((item[0], item[1], item[2], 0))
+            else:
+                new_data.append(item)
+        
+        image.putdata(new_data)
+        return image
+
+    @staticmethod
     def process_and_save(image, output_format, quality=85, optimize=True, strip_metadata=True, lossless=False):
         """
         Process the image (conversion, compression) and return the bytes.
