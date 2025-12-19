@@ -4,9 +4,10 @@ import io
 import zipfile
 import os
 from processor import ImageProcessor
-from utils import format_bytes, get_unique_filename
+from utils import format_bytes, get_unique_filename, get_safe_filename_stem
 from tasks import process_image_task
 from concurrent.futures import ThreadPoolExecutor
+
 
 st.set_page_config(page_title="Image Processor", layout="wide")
 
@@ -148,7 +149,7 @@ if 'processed_images' not in st.session_state:
 if uploaded_files:
     st.subheader(f"Processing {len(uploaded_files)} Images")
     
-    if st.button("Process Images", help="Click to start processing all uploaded images with the selected settings."):
+    if st.button("Process Images", type="primary", help="Click to start processing all uploaded images with the selected settings."):
         processed_images = []
         progress_bar = st.progress(0)
         
@@ -252,7 +253,7 @@ if uploaded_files:
 
         # Store in session state
         st.session_state.processed_images = processed_images
-        st.success("Processing Complete!")
+        st.toast("Processing Complete!", icon='🎉')
 
     # Display Results if available in session state
     if st.session_state.processed_images:
@@ -276,16 +277,7 @@ if uploaded_files:
         with zipfile.ZipFile(zip_buffer, "w") as zf:
             for item in st.session_state.processed_images:
                 # Security: Sanitize filename to prevent zip slip/path traversal
-                safe_name = os.path.basename(item['name'])
-                if not safe_name:
-                    safe_name = "image"
-
-                # Handle filename without extension
-                if '.' in safe_name:
-                    name_stem = safe_name.rsplit('.', 1)[0]
-                else:
-                    name_stem = safe_name
-
+                name_stem = get_safe_filename_stem(item['name'])
                 file_name = f"processed_{name_stem}.{output_format.lower()}"
                 zf.writestr(file_name, item['data'].getvalue())
         
@@ -294,6 +286,7 @@ if uploaded_files:
             data=zip_buffer.getvalue(),
             file_name="processed_images.zip",
             mime="application/zip",
+            type="primary",
             help="Download all processed images in a single ZIP file."
         )
         
@@ -302,14 +295,7 @@ if uploaded_files:
         for item in st.session_state.processed_images:
             # Security: Sanitize filename for display and download
             safe_name = os.path.basename(item['name'])
-            if not safe_name:
-                safe_name = "image"
-
-            # Handle filename without extension for constructing new name
-            if '.' in safe_name:
-                name_stem = safe_name.rsplit('.', 1)[0]
-            else:
-                name_stem = safe_name
+            name_stem = get_safe_filename_stem(item['name'])
 
             with st.expander(f"{safe_name} -> {format_bytes(item['processed_size'])}"):
                 if item.get("has_transparency"):
@@ -324,10 +310,10 @@ if uploaded_files:
                 st.download_button(
                     label=f"Download {safe_name}",
                     data=item['data'].getvalue(),
-                    file_name=f"processed_{item['name'].rsplit('.', 1)[0]}.{output_format.lower()}",
+                    file_name=f"processed_{name_stem}.{output_format.lower()}",
                     mime=f"image/{output_format.lower()}",
-                    help=f"Download {item['name']}"
+                    help=f"Download {safe_name}"
                 )
 
 else:
-    st.info("Please upload images to begin.")
+    st.info("👋 Upload images above to begin processing.")
