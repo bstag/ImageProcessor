@@ -48,4 +48,6 @@ def get_safe_filename_stem(filename):
     else:
         name_stem = safe_name
 
+    if not name_stem:
+        name_stem = "image"
     return name_stem
