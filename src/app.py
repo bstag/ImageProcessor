@@ -226,14 +226,6 @@ if uploaded_files:
             }
 
             completed_count = 0
-            for future in future_to_file:
-                # Wait for each to complete (in order of submission or completion?
-                # Ideally as_completed, but we need to match results to original order?
-                # Actually, order doesn't matter much for results list, but nice to keep.
-                # Here we iterate over keys which is insertion order (Python 3.7+), but futures complete in any order.
-                # To update progress bar smoothly, we should iterate as_completed.
-                pass
-
             for future in as_completed(future_to_file):
                 name, original_bytes_size = future_to_file[future]
                 result = future.result()
