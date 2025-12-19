@@ -24,3 +24,30 @@ def get_file_info(file_path):
         "size_bytes": size,
         "size_formatted": format_bytes(size)
     }
+
+def get_safe_filename_stem(filename):
+    """
+    Return a sanitized filename stem (name without directory or extension).
+
+    The input is first reduced to its basename via ``os.path.basename`` to
+    avoid path traversal. If this basename is empty (for example, when
+    ``filename`` is an empty string), a fallback name of ``"image"`` is used.
+
+    The extension is then stripped by splitting on the last dot. Note that
+    if the basename starts with a dot and contains no other dots (for example,
+    ``".hidden"``), the resulting stem will be an empty string. This function
+    does not apply any additional fallback in that case and will return the
+    empty stem as-is.
+    """
+    safe_name = os.path.basename(filename)
+    if not safe_name:
+        safe_name = "image"
+
+    if '.' in safe_name:
+        name_stem = safe_name.rsplit('.', 1)[0]
+    else:
+        name_stem = safe_name
+
+    if not name_stem:
+        name_stem = "image"
+    return name_stem

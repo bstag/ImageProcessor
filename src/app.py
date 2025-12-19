@@ -4,7 +4,7 @@ import io
 import zipfile
 import os
 from processor import ImageProcessor
-from utils import format_bytes, get_unique_filename
+from utils import format_bytes, get_unique_filename, get_safe_filename_stem
 
 st.set_page_config(page_title="Image Processor", layout="wide")
 
@@ -235,16 +235,7 @@ if uploaded_files:
         with zipfile.ZipFile(zip_buffer, "w") as zf:
             for item in st.session_state.processed_images:
                 # Security: Sanitize filename to prevent zip slip/path traversal
-                safe_name = os.path.basename(item['name'])
-                if not safe_name:
-                    safe_name = "image"
-
-                # Handle filename without extension
-                if '.' in safe_name:
-                    name_stem = safe_name.rsplit('.', 1)[0]
-                else:
-                    name_stem = safe_name
-
+                name_stem = get_safe_filename_stem(item['name'])
                 file_name = f"processed_{name_stem}.{output_format.lower()}"
                 zf.writestr(file_name, item['data'].getvalue())
         
@@ -262,14 +253,7 @@ if uploaded_files:
         for item in st.session_state.processed_images:
             # Security: Sanitize filename for display and download
             safe_name = os.path.basename(item['name'])
-            if not safe_name:
-                safe_name = "image"
-
-            # Handle filename without extension for constructing new name
-            if '.' in safe_name:
-                name_stem = safe_name.rsplit('.', 1)[0]
-            else:
-                name_stem = safe_name
+            name_stem = get_safe_filename_stem(item['name'])
 
             with st.expander(f"{safe_name} -> {format_bytes(item['processed_size'])}"):
                 if item.get("has_transparency"):
@@ -284,9 +268,9 @@ if uploaded_files:
                 st.download_button(
                     label=f"Download {safe_name}",
                     data=item['data'].getvalue(),
-                    file_name=f"processed_{item['name'].rsplit('.', 1)[0]}.{output_format.lower()}",
+                    file_name=f"processed_{name_stem}.{output_format.lower()}",
                     mime=f"image/{output_format.lower()}",
-                    help=f"Download {item['name']}"
+                    help=f"Download {safe_name}"
                 )
 
 else:
