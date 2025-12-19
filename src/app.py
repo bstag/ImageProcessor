@@ -233,7 +233,12 @@ if uploaded_files:
                         "has_transparency": result['has_transparency']
                     })
                 else:
-                    st.error(f"Error processing {name}: {result['error']}")
+                    st.error(
+                        f"Error processing file '{name}' "
+                        f"(size: {format_bytes(original_bytes_size)}, "
+                        f"output format: {config.get('output_format', 'original')}): "
+                        f"{result['error']}"
+                    )
                 
                 completed_count += 1
                 progress_bar.progress(completed_count / len(uploaded_files))
