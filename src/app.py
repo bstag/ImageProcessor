@@ -269,7 +269,7 @@ if uploaded_files:
                     data=item['data'].getvalue(),
                     file_name=f"processed_{name_stem}.{output_format.lower()}",
                     mime=f"image/{output_format.lower()}",
-                    help=f"Download {item['name']}"
+                    help=f"Download {safe_name}"
                 )
 
 else:
