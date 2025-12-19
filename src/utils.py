@@ -24,3 +24,18 @@ def get_file_info(file_path):
         "size_bytes": size,
         "size_formatted": format_bytes(size)
     }
+
+def get_safe_filename_stem(filename):
+    """
+    Sanitizes the filename to prevent path traversal and returns the filename stem (without extension).
+    """
+    safe_name = os.path.basename(filename)
+    if not safe_name:
+        safe_name = "image"
+
+    if '.' in safe_name:
+        name_stem = safe_name.rsplit('.', 1)[0]
+    else:
+        name_stem = safe_name
+
+    return name_stem
