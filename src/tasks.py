@@ -21,8 +21,8 @@ def process_image_task(file_content, config):
         # The main app needs: original_size, processed_size, data (bytes), image (PIL), original_image (PIL), has_transparency
 
         original_image = image.copy()
-        original_size = len(file_content) # Approximation or we use image.size (dimensions)?
-        # App uses uploaded_file.size for original_size (bytes). We can pass that in or just use len(file_content).
+        original_size = len(file_content)  # Size in bytes of the original uploaded file content
+        # App uses uploaded_file.size for original_size (bytes); here we derive it from the raw file bytes.
         original_dimensions = image.size
 
         # Process
