@@ -112,6 +112,15 @@ with st.sidebar.expander("Transforms"):
 
 with st.sidebar.expander("Crop"):
     crop_mode = st.selectbox("Crop Mode", ["None", "Custom Box", "Aspect Center"], help="Choose a cropping strategy.")
+    
+    # Initialize crop variables with defaults (similar pattern to resize variables at lines 69-72)
+    crop_left = 0
+    crop_top = 0
+    crop_right = 0
+    crop_bottom = 0
+    crop_aspect_w = 1
+    crop_aspect_h = 1
+    
     if crop_mode == "Custom Box":
         c1, c2 = st.columns(2)
         with c1:
