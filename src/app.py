@@ -6,7 +6,7 @@ import os
 from processor import ImageProcessor
 from utils import format_bytes, get_unique_filename, get_safe_filename_stem
 from tasks import process_image_task
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 st.set_page_config(page_title="Image Processor", layout="wide")
@@ -234,7 +234,6 @@ if uploaded_files:
                 # To update progress bar smoothly, we should iterate as_completed.
                 pass
 
-            from concurrent.futures import as_completed
             for future in as_completed(future_to_file):
                 name, original_bytes_size = future_to_file[future]
                 result = future.result()
