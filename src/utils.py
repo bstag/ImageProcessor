@@ -29,18 +29,25 @@ def get_safe_filename_stem(filename):
     """
     Return a sanitized filename stem (name without directory or extension).
 
-    The input is first reduced to its basename via ``os.path.basename`` to
-    avoid path traversal. If this basename is empty (for example, when
-    ``filename`` is an empty string), a fallback name of ``"image"`` is used.
+    The input is first cleaned of null bytes and then reduced to its basename
+    by replacing backslashes with forward slashes and then using
+    ``os.path.basename`` to avoid path traversal. If this basename is empty
+    (for example, when ``filename`` is an empty string), or consists only of
+    dots, a fallback name of ``"image"`` is used.
 
     The extension is then stripped by splitting on the last dot. Note that
     if the basename starts with a dot and contains no other dots (for example,
-    ``".hidden"``), the resulting stem will be an empty string. This function
-    does not apply any additional fallback in that case and will return the
-    empty stem as-is.
+    ``".hidden"``), the resulting stem will be an empty string. A fallback
+    name of ``"image"`` is used in this case as well.
     """
-    safe_name = os.path.basename(filename)
-    if not safe_name:
+    # Remove null bytes
+    filename = filename.replace('\0', '')
+
+    # Replace backslashes with forward slashes for cross-platform compatibility
+    safe_name = os.path.basename(filename.replace("\\", "/"))
+
+    # Handle cases like "" or ".." or "."
+    if not safe_name or safe_name.strip('.') == '':
         safe_name = "image"
 
     if '.' in safe_name:
@@ -48,6 +55,6 @@ def get_safe_filename_stem(filename):
     else:
         name_stem = safe_name
 
-    if not name_stem:
+    if not name_stem or name_stem.strip('.') == '':
         name_stem = "image"
     return name_stem

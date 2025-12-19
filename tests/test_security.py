@@ -27,7 +27,12 @@ class TestSecurity(unittest.TestCase):
         self.assertEqual(get_safe_filename_stem("image.png"), "image")
         self.assertEqual(get_safe_filename_stem("path/to/image.png"), "image")
         self.assertEqual(get_safe_filename_stem(""), "image")
-        self.assertEqual(get_safe_filename_stem(".hidden"), "") # .hidden -> split('.') -> ['', 'hidden'] -> [0] = ''
+        self.assertEqual(get_safe_filename_stem(".hidden"), "image")  # ".hidden" -> rsplit('.', 1) -> ['', 'hidden']; empty stem '' triggers fallback to "image" in implementation
+        self.assertEqual(get_safe_filename_stem("..\\..\\etc\\passwd.jpg"), "passwd")
+        self.assertEqual(get_safe_filename_stem("/etc/passwd.jpg"), "passwd")
+        self.assertEqual(get_safe_filename_stem("malicious\0.jpg"), "malicious")
+        self.assertEqual(get_safe_filename_stem(".."), "image")
+
 
 if __name__ == '__main__':
     unittest.main()
