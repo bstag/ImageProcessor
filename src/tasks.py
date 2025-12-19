@@ -9,16 +9,25 @@ def process_image_task(file_content, config):
         file_content (bytes): The raw bytes of the image file.
         config (dict): Configuration dictionary containing processing parameters.
     Returns:
-        dict: A dictionary containing the processed image data and metadata, or error info.
+        dict: On success, a dictionary containing:
+            - original_size (int): Size of the original file in bytes.
+            - original_dimensions (tuple[int, int]): Width and height of the original image.
+            - processed_size (int): Size of the processed image in bytes.
+            - data (io.BytesIO): In-memory binary stream of the processed image.
+            - image (PIL.Image.Image): The processed PIL image.
+            - original_image (PIL.Image.Image): A copy of the original PIL image.
+            - has_transparency (bool): Whether the original image has transparency.
+        On failure, a dictionary containing:
+            - success (bool): False.
+            - error (str): Error message.
     """
     try:
         # Load Image from bytes
         image = Image.open(io.BytesIO(file_content))
 
-        # Keep a copy of original for display (we need to return it because we can't update UI from here)
-        # Note: We can't return the PIL object easily if we want to be process-safe, but for threads it is fine.
-        # However, for memory efficiency, maybe we shouldn't duplicate it here if we don't strictly need to.
-        # The main app needs: original_size, processed_size, data (bytes), image (PIL), original_image (PIL), has_transparency
+        # Keep a copy of the original image for display in the UI.
+        # Note: Returning PIL objects is suitable for threaded use; for process-based workers,
+        # consider serializing image data instead.
 
         original_image = image.copy()
         original_size = len(file_content)  # Size in bytes of the original uploaded file content
