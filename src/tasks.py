@@ -69,11 +69,11 @@ def process_image_task(file_content, config):
         if config.get('replace_color', False):
             rgb_color = config.get('trans_color_rgb')
             if rgb_color:
-                 image = ImageProcessor.replace_color_with_transparency(
-                     image,
-                     rgb_color,
-                     config.get('trans_tolerance', 10)
-                 )
+                image = ImageProcessor.replace_color_with_transparency(
+                    image,
+                    rgb_color,
+                    config.get('trans_tolerance', 10)
+                )
 
         # 1. Resize
         resize_type = config.get('resize_type', 'None')
