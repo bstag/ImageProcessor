@@ -197,7 +197,14 @@ if uploaded_files:
 
         # Parallel Processing
         # Bolt Optimization: Parallelize image processing to improve performance for multiple uploads
-        with ThreadPoolExecutor() as executor:
+        # Limit the number of worker threads to avoid excessive memory usage when processing many images
+        max_workers = 1
+        if uploaded_files:
+            cpu_count = os.cpu_count() or 1
+            # Cap workers by CPU count, number of files, and a small upper bound to control memory usage
+            max_workers = min(8, cpu_count, len(uploaded_files))
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
             # We must read file content here because Streamlit's UploadedFile isn't thread-safe for reading across threads
             # (or rather, we want to ensure we have the data ready)
             files_data = [(f.name, f.size, f.getvalue()) for f in uploaded_files]
