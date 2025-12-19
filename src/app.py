@@ -146,7 +146,7 @@ if 'processed_images' not in st.session_state:
 if uploaded_files:
     st.subheader(f"Processing {len(uploaded_files)} Images")
     
-    if st.button("Process Images", help="Click to start processing all uploaded images with the selected settings."):
+    if st.button("Process Images", type="primary", help="Click to start processing all uploaded images with the selected settings."):
         processed_images = []
         
         progress_bar = st.progress(0)
@@ -211,7 +211,7 @@ if uploaded_files:
         
         # Store in session state
         st.session_state.processed_images = processed_images
-        st.success("Processing Complete!")
+        st.toast("Processing Complete!", icon='🎉')
 
     # Display Results if available in session state
     if st.session_state.processed_images:
@@ -253,6 +253,7 @@ if uploaded_files:
             data=zip_buffer.getvalue(),
             file_name="processed_images.zip",
             mime="application/zip",
+            type="primary",
             help="Download all processed images in a single ZIP file."
         )
         
@@ -289,4 +290,4 @@ if uploaded_files:
                 )
 
 else:
-    st.info("Please upload images to begin.")
+    st.info("👋 Upload images above to begin processing.")
