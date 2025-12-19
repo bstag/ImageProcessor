@@ -172,24 +172,24 @@ if uploaded_files:
             'quality': quality,
             'strip_metadata': strip_metadata,
             'lossless': lossless,
-            'crop_mode': crop_mode if 'crop_mode' in locals() else "None"
+            'crop_mode': crop_mode
         }
 
         # Add conditional config
-        if 'crop_mode' in locals() and crop_mode == "Custom Box":
+        if crop_mode == "Custom Box":
             config.update({
                 'crop_left': crop_left,
                 'crop_top': crop_top,
                 'crop_right': crop_right,
                 'crop_bottom': crop_bottom
             })
-        elif 'crop_mode' in locals() and crop_mode == "Aspect Center":
+        elif crop_mode == "Aspect Center":
             config.update({
                 'crop_aspect_w': crop_aspect_w,
                 'crop_aspect_h': crop_aspect_h
             })
 
-        if 'replace_color' in locals() and replace_color:
+        if replace_color:
             tc = trans_color.lstrip('#')
             rgb_color = tuple(int(tc[i:i+2], 16) for i in (0, 2, 4))
             config['replace_color'] = True
