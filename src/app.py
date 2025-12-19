@@ -5,6 +5,9 @@ import zipfile
 import os
 from processor import ImageProcessor
 from utils import format_bytes, get_unique_filename, get_safe_filename_stem
+from tasks import process_image_task
+from concurrent.futures import ThreadPoolExecutor
+
 
 st.set_page_config(page_title="Image Processor", layout="wide")
 
@@ -148,67 +151,106 @@ if uploaded_files:
     
     if st.button("Process Images", type="primary", help="Click to start processing all uploaded images with the selected settings."):
         processed_images = []
-        
         progress_bar = st.progress(0)
         
-        for idx, uploaded_file in enumerate(uploaded_files):
-            # Load Image
-            try:
-                image = Image.open(uploaded_file)
-                # Keep a copy of original for display
-                original_image = image.copy()
-                original_size = uploaded_file.size
+        # Prepare configuration dictionary
+        config = {
+            'brightness': brightness,
+            'contrast': contrast,
+            'sharpness': sharpness,
+            'saturation': saturation,
+            'rotate': rotate,
+            'flip_h': flip_h,
+            'flip_v': flip_v,
+            'grayscale': grayscale,
+            'resize_type': resize_type,
+            'width': width,
+            'height': height,
+            'percentage': percentage,
+            'maintain_aspect': maintain_aspect,
+            'output_format': output_format,
+            'quality': quality,
+            'strip_metadata': strip_metadata,
+            'lossless': lossless,
+            'crop_mode': crop_mode if 'crop_mode' in locals() else "None"
+        }
+
+        # Add conditional config
+        if 'crop_mode' in locals() and crop_mode == "Custom Box":
+            config.update({
+                'crop_left': crop_left,
+                'crop_top': crop_top,
+                'crop_right': crop_right,
+                'crop_bottom': crop_bottom
+            })
+        elif 'crop_mode' in locals() and crop_mode == "Aspect Center":
+            config.update({
+                'crop_aspect_w': crop_aspect_w,
+                'crop_aspect_h': crop_aspect_h
+            })
+
+        if 'replace_color' in locals() and replace_color:
+            tc = trans_color.lstrip('#')
+            rgb_color = tuple(int(tc[i:i+2], 16) for i in (0, 2, 4))
+            config['replace_color'] = True
+            config['trans_color_rgb'] = rgb_color
+            config['trans_tolerance'] = trans_tolerance
+
+        # Parallel Processing
+        # Bolt Optimization: Parallelize image processing to improve performance for multiple uploads
+        # Limit the number of worker threads to avoid excessive memory usage when processing many images
+        max_workers = 1
+        if uploaded_files:
+            cpu_count = os.cpu_count() or 1
+            # Cap workers by CPU count, number of files, and a small upper bound to control memory usage
+            max_workers = min(8, cpu_count, len(uploaded_files))
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # We must read file content here because Streamlit's UploadedFile isn't thread-safe for reading across threads
+            # (or rather, we want to ensure we have the data ready)
+            files_data = [(f.name, f.size, f.getvalue()) for f in uploaded_files]
+
+            # Submit tasks
+            future_to_file = {
+                executor.submit(process_image_task, content, config): (name, size)
+                for name, size, content in files_data
+            }
+
+            completed_count = 0
+            for future in future_to_file:
+                # Wait for each to complete (in order of submission or completion?
+                # Ideally as_completed, but we need to match results to original order?
+                # Actually, order doesn't matter much for results list, but nice to keep.
+                # Here we iterate over keys which is insertion order (Python 3.7+), but futures complete in any order.
+                # To update progress bar smoothly, we should iterate as_completed.
+                pass
+
+            from concurrent.futures import as_completed
+            for future in as_completed(future_to_file):
+                name, original_bytes_size = future_to_file[future]
+                result = future.result()
                 
-                # Process
-                # 0. Enhancements & Transforms (New)
-                image = ImageProcessor.apply_enhancements(image, brightness, contrast, sharpness, saturation)
-                image = ImageProcessor.apply_transforms(image, rotate, flip_h, flip_v, grayscale)
-
-                # Crop
-                if 'crop_mode' in locals() and crop_mode != "None":
-                    if crop_mode == "Custom Box":
-                        iw, ih = image.size
-                        l = max(0, min(iw, int(crop_left)))
-                        t = max(0, min(ih, int(crop_top)))
-                        r_in = int(crop_right) if crop_right > 0 else iw
-                        b_in = int(crop_bottom) if crop_bottom > 0 else ih
-                        r = max(l + 1, min(iw, r_in))
-                        b = max(t + 1, min(ih, b_in))
-                        image = ImageProcessor.crop_image(image, l, t, r, b)
-                    elif crop_mode == "Aspect Center":
-                        image = ImageProcessor.center_crop_to_aspect(image, int(crop_aspect_w), int(crop_aspect_h))
-
-                # Transparency Replacement
-                if 'replace_color' in locals() and replace_color:
-                    tc = trans_color.lstrip('#')
-                    rgb_color = tuple(int(tc[i:i+2], 16) for i in (0, 2, 4))
-                    image = ImageProcessor.replace_color_with_transparency(image, rgb_color, trans_tolerance)
-
-                # 1. Resize
-                if resize_type != "None":
-                    image = ImageProcessor.resize_image(image, width, height, percentage, maintain_aspect)
+                if result['success']:
+                    processed_images.append({
+                        "name": name,
+                        "original_size": original_bytes_size,
+                        "processed_size": result['processed_size'],
+                        "data": result['data'],
+                        "image": result['image'],
+                        "original_image": result['original_image'],
+                        "has_transparency": result['has_transparency']
+                    })
+                else:
+                    st.error(
+                        f"Error processing file '{name}' "
+                        f"(size: {format_bytes(original_bytes_size)}, "
+                        f"output format: {config.get('output_format', 'original')}): "
+                        f"{result['error']}"
+                    )
                 
-                # Check transparency
-                original_has_transparency = ImageProcessor.has_transparency(original_image)
+                completed_count += 1
+                progress_bar.progress(completed_count / len(uploaded_files))
 
-                # 2. Save/Optimize
-                output_io = ImageProcessor.process_and_save(image, output_format, quality, optimize=True, strip_metadata=strip_metadata, lossless=lossless)
-                processed_size = output_io.getbuffer().nbytes
-                
-                processed_images.append({
-                    "name": uploaded_file.name,
-                    "original_size": original_size,
-                    "processed_size": processed_size,
-                    "data": output_io,
-                    "image": image, # The PIL image object for display
-                    "original_image": original_image, # Store original for comparison
-                    "has_transparency": original_has_transparency
-                })
-            except Exception as e:
-                st.error(f"Error processing {uploaded_file.name}: {e}")
-            
-            progress_bar.progress((idx + 1) / len(uploaded_files))
-        
         # Store in session state
         st.session_state.processed_images = processed_images
         st.toast("Processing Complete!", icon='🎉')
