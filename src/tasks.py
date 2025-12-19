@@ -111,7 +111,7 @@ def process_image_task(file_content, config):
 
         return {
             "success": True,
-            "original_size": original_size, # This is bytes
+            "original_size": original_size,
             "original_dimensions": original_dimensions,
             "processed_size": processed_size,
             "data": output_io,
