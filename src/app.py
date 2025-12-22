@@ -15,7 +15,7 @@ st.title("Image Processing & Optimization")
 
 uploaded_files = st.file_uploader(
     "Upload Images",
-    type=['png', 'jpg', 'jpeg', 'bmp', 'webp', 'heic', 'avif'],
+    type=['png', 'jpg', 'jpeg', 'bmp', 'webp', 'heic', 'heif', 'avif'],
     accept_multiple_files=True,
     help="Drag and drop images here or click to browse."
 )
