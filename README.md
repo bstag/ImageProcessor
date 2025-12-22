@@ -12,7 +12,8 @@ A powerful, user-friendly web application built with **Streamlit** and **Pillow 
 *   **High Quality**: Uses Lanczos resampling for the best possible quality.
 
 ### 2. Advanced Web Optimization
-*   **Modern Formats**: Convert images to **WebP**, **AVIF**, JPEG, PNG, and BMP.
+*   **Input Support**: Seamlessly handles **HEIC/HEIF** files (common on iOS) in addition to standard formats.
+*   **Modern Output Formats**: Convert images to **WebP**, **AVIF**, JPEG, PNG, and BMP.
 *   **Compression Control**:
     *   Adjustable **Quality Slider** (0-100).
     *   **Lossless Mode** for WebP and AVIF.
@@ -30,9 +31,11 @@ A powerful, user-friendly web application built with **Streamlit** and **Pillow 
 
 ### 4. Workflow & Interface
 *   **Batch Processing**: Drag & drop multiple images at once.
+*   **High Performance**: Uses multi-threaded parallel processing for fast batch conversions.
 *   **Visual Comparison**: Side-by-side "Original vs. Processed" preview.
 *   **Real-time Metrics**: See file size reduction savings instantly.
 *   **Persistence**: Processed results stay available during downloads (won't disappear on click).
+*   **Security**: Automatically sanitizes filenames to prevent path traversal issues during export.
 *   **Export**: Download individual files or get everything in a single **ZIP archive**.
 
 ---
@@ -119,8 +122,10 @@ C:\Source\ImageProcessor\
 ├── src/
 │   ├── app.py            # Main Streamlit application UI
 │   ├── processor.py      # Core image processing logic (PIL wrapper)
+│   ├── tasks.py          # Parallel processing tasks
 │   └── utils.py          # Helper functions (formatting, file handling)
 │
 └── tests/
-    └── test_processor.py # Unit tests for processing logic
+    ├── test_processor.py # Unit tests for processing logic
+    └── test_security.py  # Security and validation tests
 ```

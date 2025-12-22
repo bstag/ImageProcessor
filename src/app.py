@@ -144,14 +144,6 @@ with st.sidebar.expander("Transparency"):
         if output_format in ['JPEG', 'BMP']:
             st.warning("Selected output format does not support transparency!")
 
-# File Uploader
-uploaded_files = st.file_uploader(
-    "Upload Images",
-    type=['png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif'],
-    accept_multiple_files=True,
-    help="Drag and drop or click to upload images."
-)
-
 if 'processed_images' not in st.session_state:
     st.session_state.processed_images = None
 
