@@ -47,17 +47,29 @@ if output_format in ["WEBP", "AVIF"]:
         help="Retain perfect quality at the cost of larger file size. Available for WebP and AVIF."
     )
 
-if not lossless:
-    quality = st.sidebar.slider(
-        "Quality",
-        0,
-        100,
-        80,
-        help="Adjust compression level. Lower values result in smaller files but lower quality."
-    )
+quality_disabled = False
+quality_help = "Adjust compression level. Lower values result in smaller files but lower quality."
+
+if lossless:
+    quality_disabled = True
+    quality_help = "Quality selection is disabled because Lossless Compression is active."
+elif output_format in ['PNG', 'BMP']:
+    quality_disabled = True
+    quality_help = f"Quality selection is not applicable for {output_format} format."
+
+quality_val = st.sidebar.slider(
+    "Quality",
+    0,
+    100,
+    80,
+    disabled=quality_disabled,
+    help=quality_help
+)
+
+if quality_disabled:
+    quality = 100
 else:
-    quality = 100 # Ignored by some, but good practice
-    st.sidebar.info("Quality slider disabled in Lossless mode")
+    quality = quality_val
 
 strip_metadata = st.sidebar.checkbox(
     "Strip Metadata",
