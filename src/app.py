@@ -254,7 +254,6 @@ if uploaded_files:
                         "original_size": original_bytes_size,
                         "processed_size": result['processed_size'],
                         "data": result['data'],
-                        "image": result['image'],
                         "original_image": result['original_image'],
                         "has_transparency": result['has_transparency']
                     })
@@ -297,7 +296,7 @@ if uploaded_files:
                 # Security: Sanitize filename to prevent zip slip/path traversal
                 name_stem = get_safe_filename_stem(item['name'])
                 file_name = f"processed_{name_stem}.{output_format.lower()}"
-                zf.writestr(file_name, item['data'].getvalue())
+                zf.writestr(file_name, item['data'])
         
         st.download_button(
             label="Download All as ZIP",
@@ -323,11 +322,12 @@ if uploaded_files:
                 with col1:
                     st.image(item['original_image'], caption=f"Original ({format_bytes(item['original_size'])})", use_container_width=True)
                 with col2:
-                    st.image(item['image'], caption=f"Processed ({format_bytes(item['processed_size'])})", use_container_width=True)
+                    # Bolt: Use raw bytes ('data') instead of PIL object ('image') to avoid re-encoding overhead.
+                    st.image(item['data'], caption=f"Processed ({format_bytes(item['processed_size'])})", use_container_width=True)
                 
                 st.download_button(
                     label=f"Download {safe_name}",
-                    data=item['data'].getvalue(),
+                    data=item['data'],
                     file_name=f"processed_{name_stem}.{output_format.lower()}",
                     mime=f"image/{output_format.lower()}",
                     help=f"Download {safe_name}"
