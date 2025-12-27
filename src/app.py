@@ -4,7 +4,7 @@ import io
 import zipfile
 import os
 from processor import ImageProcessor
-from utils import format_bytes, get_unique_filename, get_safe_filename_stem
+from utils import format_bytes, get_unique_filename, get_safe_filename_stem, validate_upload_constraints
 from tasks import process_image_task
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -169,7 +169,14 @@ if 'processed_images' not in st.session_state:
 if uploaded_files:
     st.subheader(f"Processing {len(uploaded_files)} Images")
     
-    if st.button("Process Images", type="primary", help="Click to start processing all uploaded images with the selected settings."):
+    # Security Check: Validate upload constraints to prevent DoS
+    MAX_FILE_COUNT = 50
+    MAX_TOTAL_SIZE_MB = 200
+    is_valid, error_msg = validate_upload_constraints(uploaded_files, MAX_FILE_COUNT, MAX_TOTAL_SIZE_MB)
+
+    if not is_valid:
+        st.error(f"Upload limit exceeded: {error_msg}")
+    elif st.button("Process Images", type="primary", help="Click to start processing all uploaded images with the selected settings."):
         processed_images = []
         progress_bar = st.progress(0)
         
