@@ -35,7 +35,9 @@ A powerful, user-friendly web application built with **Streamlit** and **Pillow 
 *   **Visual Comparison**: Side-by-side "Original vs. Processed" preview.
 *   **Real-time Metrics**: See file size reduction savings instantly.
 *   **Persistence**: Processed results stay available during downloads (won't disappear on click).
+*   **Notifications**: Non-intrusive toast notifications for status updates.
 *   **Security**: Automatically sanitizes filenames to prevent path traversal issues during export.
+*   **Upload Constraints**: Enforced limits of **50 files** per batch and **200MB** total size to prevent abuse.
 *   **Export**: Download individual files or get everything in a single **ZIP archive**.
 
 ---
@@ -127,5 +129,6 @@ C:\Source\ImageProcessor\
 │
 └── tests/
     ├── test_processor.py # Unit tests for processing logic
-    └── test_security.py  # Security and validation tests
+    ├── test_security.py  # Security and validation tests
+    └── test_utils.py     # Utility function tests
 ```
