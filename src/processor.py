@@ -1,4 +1,4 @@
-from PIL import Image, ImageOps, ImageEnhance
+from PIL import Image, ImageOps, ImageEnhance, ImageChops
 import io
 import pillow_avif
 import pillow_heif
@@ -122,26 +122,50 @@ class ImageProcessor:
     @staticmethod
     def replace_color_with_transparency(image, target_color, tolerance=0):
         """
-        Replaces a target color with transparency.
+        Replaces a target color with transparency using Pillow's native C operations.
+        Optimized to be much faster than pixel iteration.
+
         target_color: tuple (R, G, B)
         tolerance: int (0-255)
         """
         image = image.convert("RGBA")
-        datas = image.getdata()
         
-        new_data = []
+        # Split channels
+        r, g, b, a = image.split()
+
         r_target, g_target, b_target = target_color[:3]
         
-        for item in datas:
-            # item is (R, G, B, A)
-            if (abs(item[0] - r_target) <= tolerance and
-                abs(item[1] - g_target) <= tolerance and
-                abs(item[2] - b_target) <= tolerance):
-                new_data.append((item[0], item[1], item[2], 0))
-            else:
-                new_data.append(item)
+        # Create lookup tables for each channel
+        # 255 if pixel is within tolerance of target, else 0
+        lut_r = [255 if abs(i - r_target) <= tolerance else 0 for i in range(256)]
+        lut_g = [255 if abs(i - g_target) <= tolerance else 0 for i in range(256)]
+        lut_b = [255 if abs(i - b_target) <= tolerance else 0 for i in range(256)]
+
+        # Create masks for each channel (L mode)
+        # These are effectively binary masks where 255 means "close to target"
+        mask_r = r.point(lut_r, 'L')
+        mask_g = g.point(lut_g, 'L')
+        mask_b = b.point(lut_b, 'L')
+
+        # Combine masks: Only pixels where ALL channels match will remain 255
+        # (255 * 255) / 255 = 255. If any is 0, result is 0.
+        mask = ImageChops.multiply(mask_r, mask_g)
+        mask = ImageChops.multiply(mask, mask_b)
+
+        # 'mask' has 255 where color matches target (should be transparent)
+        # 'mask' has 0 where color does not match (should keep original alpha)
+
+        # Invert mask: 0 (match) -> 255 (should be transparent... wait)
+        # If match (original mask 255): inverted is 0.
+        # If no match (original mask 0): inverted is 255.
+        mask_inv = ImageChops.invert(mask)
+
+        # Multiply original alpha 'a' by 'mask_inv'.
+        # Match: a * 0 = 0 (Transparent)
+        # No match: a * 255 / 255 = a (Original alpha preserved)
+        new_a = ImageChops.multiply(a, mask_inv)
         
-        image.putdata(new_data)
+        image.putalpha(new_a)
         return image
 
     @staticmethod
