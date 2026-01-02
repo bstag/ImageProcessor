@@ -103,9 +103,9 @@ if resize_type == "Percentage":
 elif resize_type == "Fixed Dimensions":
     col1, col2 = st.sidebar.columns(2)
     with col1:
-        width = st.sidebar.number_input("Width (px)", min_value=1, value=800, help="Target width in pixels.")
+        width = st.sidebar.number_input("Width (px)", min_value=1, max_value=10000, value=800, help="Target width in pixels.")
     with col2:
-        height = st.sidebar.number_input("Height (px)", min_value=1, value=600, help="Target height in pixels.")
+        height = st.sidebar.number_input("Height (px)", min_value=1, max_value=10000, value=600, help="Target height in pixels.")
     maintain_aspect = st.sidebar.checkbox(
         "Maintain Aspect Ratio",
         value=True,

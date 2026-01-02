@@ -7,6 +7,8 @@ import pillow_heif
 pillow_heif.register_heif_opener()
 
 class ImageProcessor:
+    MAX_IMAGE_DIMENSION = 10000
+
     @staticmethod
     def center_crop_to_aspect(image, target_w, target_h):
         w, h = image.size
@@ -85,6 +87,11 @@ class ImageProcessor:
             new_height = int(original_height * scale)
         elif width and height:
             if maintain_aspect_ratio:
+                # thumbnail modifies the image in-place to fit within the box, preserving aspect ratio.
+                # We need to verify that the target box itself isn't too large, though thumbnail won't exceed it.
+                if width > ImageProcessor.MAX_IMAGE_DIMENSION or height > ImageProcessor.MAX_IMAGE_DIMENSION:
+                     raise ValueError(f"Target dimensions exceed maximum allowed size ({ImageProcessor.MAX_IMAGE_DIMENSION}px)")
+
                 image.thumbnail((width, height), Image.Resampling.LANCZOS)
                 return image
             else:
@@ -100,6 +107,10 @@ class ImageProcessor:
             if maintain_aspect_ratio:
                 ratio = height / original_height
                 new_width = int(original_width * ratio)
+
+        # Validate dimensions before resizing
+        if new_width > ImageProcessor.MAX_IMAGE_DIMENSION or new_height > ImageProcessor.MAX_IMAGE_DIMENSION:
+            raise ValueError(f"Resulting image dimensions ({new_width}x{new_height}) exceed maximum allowed size ({ImageProcessor.MAX_IMAGE_DIMENSION}px)")
 
         return image.resize((new_width, new_height), Image.Resampling.LANCZOS)
 
