@@ -17,17 +17,19 @@ uploaded_files = st.file_uploader(
     "Upload Images",
     type=['png', 'jpg', 'jpeg', 'bmp', 'webp', 'heic', 'heif', 'avif'],
     accept_multiple_files=True,
-    help="Drag and drop images here or click to browse."
+    help="Supported: PNG, JPG, WEBP, HEIC, AVIF. Limit: 50 files, 200MB total."
 )
 
 # Sidebar Configuration
 st.sidebar.header("Settings")
 
-# Mode Selection
+# Mode Selection (Disabled for now as logic is not implemented)
 mode = st.sidebar.radio(
     "Mode",
     ["Rescaling", "Web Optimization"],
-    help="Choose between general resizing or optimizing images for the web."
+    index=0,
+    disabled=True,
+    help="Optimization presets are coming soon! Configure settings manually below."
 )
 
 # Output Format
