@@ -158,6 +158,20 @@ with st.sidebar.expander("Crop"):
         with a2:
             crop_aspect_h = st.number_input("Aspect Height", min_value=1, value=1, help="Height ratio (e.g., 9 for 16:9).")
 
+with st.sidebar.expander("Watermark"):
+    watermark_text = st.text_input("Watermark Text", help="Text to overlay on the image.")
+    if watermark_text:
+        wm_opacity = st.slider("Opacity", 0, 255, 128, help="Transparency of the watermark.")
+        wm_size = st.number_input("Font Size", min_value=10, max_value=200, value=30, help="Size of the watermark text.")
+        wm_color = st.color_picker("Text Color", "#FFFFFF", help="Color of the watermark text.")
+    else:
+        wm_opacity = 128
+        wm_size = 30
+        wm_color = "#FFFFFF"
+
+with st.sidebar.expander("Analysis"):
+    extract_colors = st.checkbox("Extract Dominant Colors", help="Find and display the top 5 colors in the image.")
+
 with st.sidebar.expander("Transparency"):
     replace_color = st.checkbox("Replace Color with Transparency", help="Make a specific color transparent.")
     if replace_color:
@@ -227,6 +241,9 @@ if uploaded_files:
             config['trans_color_rgb'] = rgb_color
             config['trans_tolerance'] = trans_tolerance
 
+        if extract_colors:
+            config['extract_colors'] = True
+
         if watermark_text:
             config['watermark_text'] = watermark_text
             config['wm_opacity'] = wm_opacity
@@ -266,7 +283,8 @@ if uploaded_files:
                         "processed_size": result['processed_size'],
                         "data": result['data'],
                         "original_image": result['original_image'],
-                        "has_transparency": result['has_transparency']
+                        "has_transparency": result['has_transparency'],
+                        "dominant_colors": result.get('dominant_colors')
                     })
                 else:
                     st.error(
@@ -339,10 +357,10 @@ if uploaded_files:
 
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.image(item['original_image'], caption=f"Original ({format_bytes(item['original_size'])})", use_container_width=True)
+                    st.image(item['original_image'], caption=f"Original ({format_bytes(item['original_size'])})")
                 with col2:
                     # Bolt: Use raw bytes ('data') instead of PIL object ('image') to avoid re-encoding overhead.
-                    st.image(item['data'], caption=f"Processed ({format_bytes(item['processed_size'])})", use_container_width=True)
+                    st.image(item['data'], caption=f"Processed ({format_bytes(item['processed_size'])})")
                 
                 st.download_button(
                     label=f"Download {safe_name}",
