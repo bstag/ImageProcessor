@@ -4,7 +4,7 @@ import io
 import zipfile
 import os
 from processor import ImageProcessor
-from utils import format_bytes, get_unique_filename, get_safe_filename_stem
+from utils import format_bytes, get_unique_filename, get_safe_filename_stem, validate_upload_constraints
 from tasks import process_image_task
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -17,17 +17,19 @@ uploaded_files = st.file_uploader(
     "Upload Images",
     type=['png', 'jpg', 'jpeg', 'bmp', 'webp', 'heic', 'heif', 'avif'],
     accept_multiple_files=True,
-    help="Drag and drop images here or click to browse."
+    help="Supported: PNG, JPG, WEBP, HEIC, AVIF. Limit: 50 files, 200MB total."
 )
 
 # Sidebar Configuration
 st.sidebar.header("Settings")
 
-# Mode Selection
+# Mode Selection (Disabled for now as logic is not implemented)
 mode = st.sidebar.radio(
     "Mode",
     ["Rescaling", "Web Optimization"],
-    help="Choose between general resizing or optimizing images for the web."
+    index=0,
+    disabled=True,
+    help="Optimization presets are coming soon! Configure settings manually below."
 )
 
 # Output Format
@@ -47,17 +49,29 @@ if output_format in ["WEBP", "AVIF"]:
         help="Retain perfect quality at the cost of larger file size. Available for WebP and AVIF."
     )
 
-if not lossless:
-    quality = st.sidebar.slider(
-        "Quality",
-        0,
-        100,
-        80,
-        help="Adjust compression level. Lower values result in smaller files but lower quality."
-    )
+quality_disabled = False
+quality_help = "Adjust compression level. Lower values result in smaller files but lower quality."
+
+if lossless:
+    quality_disabled = True
+    quality_help = "Quality selection is disabled because Lossless Compression is active."
+elif output_format in ['PNG', 'BMP']:
+    quality_disabled = True
+    quality_help = f"Quality selection is not applicable for {output_format} format."
+
+quality_val = st.sidebar.slider(
+    "Quality",
+    0,
+    100,
+    80,
+    disabled=quality_disabled,
+    help=quality_help
+)
+
+if quality_disabled:
+    quality = 100
 else:
-    quality = 100 # Ignored by some, but good practice
-    st.sidebar.info("Quality slider disabled in Lossless mode")
+    quality = quality_val
 
 strip_metadata = st.sidebar.checkbox(
     "Strip Metadata",
@@ -89,9 +103,9 @@ if resize_type == "Percentage":
 elif resize_type == "Fixed Dimensions":
     col1, col2 = st.sidebar.columns(2)
     with col1:
-        width = st.sidebar.number_input("Width (px)", min_value=1, value=800, help="Target width in pixels.")
+        width = st.sidebar.number_input("Width (px)", min_value=1, max_value=10000, value=800, help="Target width in pixels.")
     with col2:
-        height = st.sidebar.number_input("Height (px)", min_value=1, value=600, help="Target height in pixels.")
+        height = st.sidebar.number_input("Height (px)", min_value=1, max_value=10000, value=600, help="Target height in pixels.")
     maintain_aspect = st.sidebar.checkbox(
         "Maintain Aspect Ratio",
         value=True,
@@ -157,7 +171,14 @@ if 'processed_images' not in st.session_state:
 if uploaded_files:
     st.subheader(f"Processing {len(uploaded_files)} Images")
     
-    if st.button("Process Images", type="primary", help="Click to start processing all uploaded images with the selected settings."):
+    # Security Check: Validate upload constraints to prevent DoS
+    MAX_FILE_COUNT = 50
+    MAX_TOTAL_SIZE_MB = 200
+    is_valid, error_msg = validate_upload_constraints(uploaded_files, MAX_FILE_COUNT, MAX_TOTAL_SIZE_MB)
+
+    if not is_valid:
+        st.error(f"Upload limit exceeded: {error_msg}")
+    elif st.button("Process Images", type="primary", help="Click to start processing all uploaded images with the selected settings."):
         processed_images = []
         progress_bar = st.progress(0)
         
@@ -236,7 +257,6 @@ if uploaded_files:
                         "original_size": original_bytes_size,
                         "processed_size": result['processed_size'],
                         "data": result['data'],
-                        "image": result['image'],
                         "original_image": result['original_image'],
                         "has_transparency": result['has_transparency']
                     })
@@ -279,7 +299,7 @@ if uploaded_files:
                 # Security: Sanitize filename to prevent zip slip/path traversal
                 name_stem = get_safe_filename_stem(item['name'])
                 file_name = f"processed_{name_stem}.{output_format.lower()}"
-                zf.writestr(file_name, item['data'].getvalue())
+                zf.writestr(file_name, item['data'])
         
         st.download_button(
             label="Download All as ZIP",
@@ -305,11 +325,12 @@ if uploaded_files:
                 with col1:
                     st.image(item['original_image'], caption=f"Original ({format_bytes(item['original_size'])})", use_container_width=True)
                 with col2:
-                    st.image(item['image'], caption=f"Processed ({format_bytes(item['processed_size'])})", use_container_width=True)
+                    # Bolt: Use raw bytes ('data') instead of PIL object ('image') to avoid re-encoding overhead.
+                    st.image(item['data'], caption=f"Processed ({format_bytes(item['processed_size'])})", use_container_width=True)
                 
                 st.download_button(
                     label=f"Download {safe_name}",
-                    data=item['data'].getvalue(),
+                    data=item['data'],
                     file_name=f"processed_{name_stem}.{output_format.lower()}",
                     mime=f"image/{output_format.lower()}",
                     help=f"Download {safe_name}"

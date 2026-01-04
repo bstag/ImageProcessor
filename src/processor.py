@@ -1,4 +1,4 @@
-from PIL import Image, ImageOps, ImageEnhance, ImageFilter
+from PIL import Image, ImageOps, ImageEnhance, ImageFilter, ImageChops, ImageFilter
 import io
 import pillow_avif
 import pillow_heif
@@ -7,6 +7,8 @@ import pillow_heif
 pillow_heif.register_heif_opener()
 
 class ImageProcessor:
+    MAX_IMAGE_DIMENSION = 10000
+
     @staticmethod
     def center_crop_to_aspect(image, target_w, target_h):
         w, h = image.size
@@ -106,6 +108,11 @@ class ImageProcessor:
             new_height = int(original_height * scale)
         elif width and height:
             if maintain_aspect_ratio:
+                # thumbnail modifies the image in-place to fit within the box, preserving aspect ratio.
+                # We need to verify that the target box itself isn't too large, though thumbnail won't exceed it.
+                if width > ImageProcessor.MAX_IMAGE_DIMENSION or height > ImageProcessor.MAX_IMAGE_DIMENSION:
+                     raise ValueError(f"Target dimensions exceed maximum allowed size ({ImageProcessor.MAX_IMAGE_DIMENSION}px)")
+
                 image.thumbnail((width, height), Image.Resampling.LANCZOS)
                 return image
             else:
@@ -121,6 +128,10 @@ class ImageProcessor:
             if maintain_aspect_ratio:
                 ratio = height / original_height
                 new_width = int(original_width * ratio)
+
+        # Validate dimensions before resizing
+        if new_width > ImageProcessor.MAX_IMAGE_DIMENSION or new_height > ImageProcessor.MAX_IMAGE_DIMENSION:
+            raise ValueError(f"Resulting image dimensions ({new_width}x{new_height}) exceed maximum allowed size ({ImageProcessor.MAX_IMAGE_DIMENSION}px)")
 
         return image.resize((new_width, new_height), Image.Resampling.LANCZOS)
 
@@ -143,26 +154,50 @@ class ImageProcessor:
     @staticmethod
     def replace_color_with_transparency(image, target_color, tolerance=0):
         """
-        Replaces a target color with transparency.
+        Replaces a target color with transparency using Pillow's native C operations.
+        Optimized to be much faster than pixel iteration.
+
         target_color: tuple (R, G, B)
         tolerance: int (0-255)
         """
         image = image.convert("RGBA")
-        datas = image.getdata()
         
-        new_data = []
+        # Split channels
+        r, g, b, a = image.split()
+
         r_target, g_target, b_target = target_color[:3]
         
-        for item in datas:
-            # item is (R, G, B, A)
-            if (abs(item[0] - r_target) <= tolerance and
-                abs(item[1] - g_target) <= tolerance and
-                abs(item[2] - b_target) <= tolerance):
-                new_data.append((item[0], item[1], item[2], 0))
-            else:
-                new_data.append(item)
+        # Create lookup tables for each channel
+        # 255 if pixel is within tolerance of target, else 0
+        lut_r = [255 if abs(i - r_target) <= tolerance else 0 for i in range(256)]
+        lut_g = [255 if abs(i - g_target) <= tolerance else 0 for i in range(256)]
+        lut_b = [255 if abs(i - b_target) <= tolerance else 0 for i in range(256)]
+
+        # Create masks for each channel (L mode)
+        # These are effectively binary masks where 255 means "close to target"
+        mask_r = r.point(lut_r, 'L')
+        mask_g = g.point(lut_g, 'L')
+        mask_b = b.point(lut_b, 'L')
+
+        # Combine masks: Only pixels where ALL channels match will remain 255
+        # (255 * 255) / 255 = 255. If any is 0, result is 0.
+        mask = ImageChops.multiply(mask_r, mask_g)
+        mask = ImageChops.multiply(mask, mask_b)
+
+        # 'mask' has 255 where color matches target (should be transparent)
+        # 'mask' has 0 where color does not match (should keep original alpha)
+
+        # Invert mask: 0 (match) -> 255 (should be transparent... wait)
+        # If match (original mask 255): inverted is 0.
+        # If no match (original mask 0): inverted is 255.
+        mask_inv = ImageChops.invert(mask)
+
+        # Multiply original alpha 'a' by 'mask_inv'.
+        # Match: a * 0 = 0 (Transparent)
+        # No match: a * 255 / 255 = a (Original alpha preserved)
+        new_a = ImageChops.multiply(a, mask_inv)
         
-        image.putdata(new_data)
+        image.putalpha(new_a)
         return image
 
     @staticmethod

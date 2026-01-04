@@ -113,15 +113,20 @@ def process_image_task(file_content, config):
             strip_metadata=config.get('strip_metadata', True),
             lossless=config.get('lossless', False)
         )
-        processed_size = output_io.getbuffer().nbytes
+        processed_data = output_io.getvalue()
+        processed_size = len(processed_data)
+
+        # Performance Optimization (Bolt):
+        # 1. Return raw bytes for 'data' instead of BytesIO to avoid cursor state issues and multiple .getvalue() calls.
+        # 2. Do NOT return the processed PIL 'image'. It's large (uncompressed) and we can use 'data' (bytes) for display.
+        #    This significantly reduces memory usage in st.session_state and avoids re-encoding overhead in st.image().
 
         return {
             "success": True,
             "original_size": original_size,
             "original_dimensions": original_dimensions,
             "processed_size": processed_size,
-            "data": output_io,
-            "image": image,
+            "data": processed_data,
             "original_image": original_image,
             "has_transparency": original_has_transparency
         }

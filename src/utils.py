@@ -58,3 +58,25 @@ def get_safe_filename_stem(filename):
     if not name_stem or name_stem.strip('.') == '':
         name_stem = "image"
     return name_stem
+
+def validate_upload_constraints(files, max_count=50, max_total_size_mb=200):
+    """
+    Validates that the uploaded files do not exceed the file count or total size limits.
+
+    Args:
+        files (list): List of file-like objects (must have .size attribute in bytes).
+        max_count (int): Maximum allowed number of files.
+        max_total_size_mb (int): Maximum allowed total size in Megabytes.
+
+    Returns:
+        tuple: (bool, str or None) - (True, None) if valid, (False, error_message) if invalid.
+    """
+    if len(files) > max_count:
+        return False, f"Too many files. Maximum allowed is {max_count}."
+
+    total_size = sum(f.size for f in files)
+    total_size_mb = total_size / (1024 * 1024)
+    if total_size_mb > max_total_size_mb:
+        return False, f"Total upload size ({total_size_mb:.1f} MB) exceeds limit of {max_total_size_mb} MB."
+
+    return True, None
