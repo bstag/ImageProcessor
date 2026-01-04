@@ -90,6 +90,22 @@ def process_image_task(file_content, config):
                     config.get('trans_tolerance', 10)
                 )
 
+        # Extract Dominant Colors (if requested)
+        dominant_colors = []
+        if config.get('extract_colors', False):
+            dominant_colors = ImageProcessor.get_dominant_colors(original_image, 5)
+
+        # Watermark
+        wm_text = config.get('watermark_text')
+        if wm_text:
+            image = ImageProcessor.add_watermark(
+                image,
+                wm_text,
+                opacity=config.get('wm_opacity', 128),
+                font_size=config.get('wm_size', 30),
+                color=config.get('wm_color', (255, 255, 255))
+            )
+
         # 1. Resize
         resize_type = config.get('resize_type', 'None')
         if resize_type != "None":
@@ -128,7 +144,8 @@ def process_image_task(file_content, config):
             "processed_size": processed_size,
             "data": processed_data,
             "original_image": original_image,
-            "has_transparency": original_has_transparency
+            "has_transparency": original_has_transparency,
+            "dominant_colors": dominant_colors
         }
     except Exception as e:
         return {

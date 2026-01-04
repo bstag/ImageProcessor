@@ -1,4 +1,4 @@
-from PIL import Image, ImageOps, ImageEnhance, ImageFilter, ImageChops, ImageFilter
+from PIL import Image, ImageOps, ImageEnhance, ImageFilter, ImageChops, ImageFilter, ImageDraw, ImageFont
 import io
 import pillow_avif
 import pillow_heif
@@ -29,6 +29,81 @@ class ImageProcessor:
             left = 0
             right = w
         return image.crop((left, top, right, bottom))
+    @staticmethod
+    def get_dominant_colors(image, num_colors=5):
+        """
+        Extracts the dominant colors from the image.
+        Returns a list of hex color strings.
+        """
+        # Quantize down to num_colors to find dominant ones
+        # Use fast quantization
+        small_image = image.resize((150, 150))
+        # Ensure RGB mode for getpalette
+        if small_image.mode != 'RGB':
+            small_image = small_image.convert('RGB')
+            
+        result = small_image.quantize(colors=num_colors)
+        palette = result.getpalette()
+        if not palette:
+            return []
+            
+        # Limit to num_colors
+        palette = palette[:num_colors*3]
+        
+        # Convert to Hex
+        colors = [f'#{palette[i]:02x}{palette[i+1]:02x}{palette[i+2]:02x}' for i in range(0, len(palette), 3)]
+        return colors
+
+    @staticmethod
+    def add_watermark(image, text, opacity=128, font_size=30, color=(255, 255, 255)):
+        """
+        Adds a text watermark to the bottom-right of the image.
+        """
+        if not text:
+            return image
+            
+        # Ensure image is RGBA for transparency support
+        original_mode = image.mode
+        if original_mode != 'RGBA':
+            image = image.convert('RGBA')
+            
+        # Create a transparent overlay
+        txt_layer = Image.new('RGBA', image.size, (255, 255, 255, 0))
+        draw = ImageDraw.Draw(txt_layer)
+        
+        # Load font (try to load default with size, fallback to default)
+        try:
+            font = ImageFont.load_default(size=font_size)
+        except TypeError:
+            # Fallback for older Pillow versions
+            font = ImageFont.load_default()
+
+        # Calculate text size using getbbox (left, top, right, bottom)
+        bbox = draw.textbbox((0, 0), text, font=font)
+        text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
+        
+        # Position: Bottom right with padding
+        padding = 20
+        x = image.width - text_width - padding
+        y = image.height - text_height - padding
+        
+        # Draw text
+        r, g, b = color
+        draw.text((x, y), text, font=font, fill=(r, g, b, opacity))
+        
+        # Composite
+        watermarked = Image.alpha_composite(image, txt_layer)
+        
+        # Convert back to original mode if it wasn't RGBA (unless it was P or 1, then maybe RGB is safer)
+        if original_mode != 'RGBA':
+            if original_mode in ['P', '1']:
+                watermarked = watermarked.convert('RGB')
+            else:
+                watermarked = watermarked.convert(original_mode)
+                
+        return watermarked
+
     @staticmethod
     def apply_filter(image, filter_name):
         """

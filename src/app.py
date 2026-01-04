@@ -227,6 +227,13 @@ if uploaded_files:
             config['trans_color_rgb'] = rgb_color
             config['trans_tolerance'] = trans_tolerance
 
+        if watermark_text:
+            config['watermark_text'] = watermark_text
+            config['wm_opacity'] = wm_opacity
+            config['wm_size'] = wm_size
+            wm_c = wm_color.lstrip('#')
+            config['wm_color'] = tuple(int(wm_c[i:i+2], 16) for i in (0, 2, 4))
+
         # Parallel Processing
         # Bolt Optimization: Parallelize image processing to improve performance for multiple uploads
         # Limit the number of worker threads to avoid excessive memory usage when processing many images
@@ -322,6 +329,14 @@ if uploaded_files:
                 if item.get("has_transparency"):
                     st.caption("ℹ️ Original image has transparency")
                 
+                if item.get("dominant_colors"):
+                    st.markdown("**Dominant Colors:**")
+                    cols = st.columns(len(item["dominant_colors"]))
+                    for idx, color in enumerate(item["dominant_colors"]):
+                        with cols[idx]:
+                            st.color_picker(f"Color {idx+1}", color, disabled=True, key=f"c_{name_stem}_{idx}")
+                            st.caption(color)
+
                 col1, col2 = st.columns(2)
                 with col1:
                     st.image(item['original_image'], caption=f"Original ({format_bytes(item['original_size'])})", use_container_width=True)

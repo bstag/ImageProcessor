@@ -29,10 +29,13 @@ A powerful, user-friendly web application built with **Streamlit** and **Pillow 
     *   **Detection**: Automatically detects if uploaded images contain transparency.
     *   **Color Replacement**: Replace a specific solid color (e.g., white background) with transparency using adjustable tolerance.
 *   **Filters**: Apply creative presets including **Blur**, **Contour**, **Detail**, **Edge Enhance**, **Emboss**, **Sharpen**, and **Smooth**, plus Grayscale conversion.
+*   **Watermarking**: Add custom text watermarks with adjustable size, opacity, color, and automatic bottom-right positioning.
 *   *Note: All edits are applied before resizing to ensure maximum output quality.*
 
 ### 4. Workflow & Interface
 *   **Batch Processing**: Drag & drop multiple images at once.
+*   **Analysis**:
+    *   **Palette Extractor**: Automatically detects and extracts the top 5 dominant colors from images, displaying their HEX codes.
 *   **High Performance**:
     *   **Parallel Processing**: Uses multi-threaded parallel processing for fast batch conversions.
     *   **Vectorized Operations**: Utilizes `Pillow.ImageChops` for high-speed color replacement and masking.
