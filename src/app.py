@@ -167,6 +167,7 @@ if uploaded_files:
             'contrast': contrast,
             'sharpness': sharpness,
             'saturation': saturation,
+            'filter_type': filter_type,
             'rotate': rotate,
             'flip_h': flip_h,
             'flip_v': flip_v,

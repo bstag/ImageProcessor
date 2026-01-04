@@ -9,6 +9,8 @@ A powerful, user-friendly web application built with **Streamlit** and **Pillow 
     *   **Percentage**: Scale images by a percentage (1% - 200%).
     *   **Fixed Dimensions**: Resize to specific width/height pixels.
 *   **Smart Resizing**: Option to lock aspect ratio to prevent distortion.
+    *   **Auto-Detection**: Automatically calculates aspect ratio from the first uploaded image.
+    *   **Bi-directional Updates**: Changing width updates height (and vice-versa) to maintain the ratio.
 *   **High Quality**: Uses Lanczos resampling for the best possible quality.
 
 ### 2. Advanced Web Optimization
@@ -26,7 +28,7 @@ A powerful, user-friendly web application built with **Streamlit** and **Pillow 
 *   **Transparency**:
     *   **Detection**: Automatically detects if uploaded images contain transparency.
     *   **Color Replacement**: Replace a specific solid color (e.g., white background) with transparency using adjustable tolerance.
-*   **Filters**: One-click Grayscale conversion.
+*   **Filters**: Apply creative presets including **Blur**, **Contour**, **Detail**, **Edge Enhance**, **Emboss**, **Sharpen**, and **Smooth**, plus Grayscale conversion.
 *   *Note: All edits are applied before resizing to ensure maximum output quality.*
 
 ### 4. Workflow & Interface

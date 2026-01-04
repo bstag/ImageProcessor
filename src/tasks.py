@@ -43,6 +43,12 @@ def process_image_task(file_content, config):
             config.get('sharpness', 1.0),
             config.get('saturation', 1.0)
         )
+        
+        # Apply Filter
+        filter_type = config.get('filter_type', 'None')
+        if filter_type != "None":
+            image = ImageProcessor.apply_filter(image, filter_type)
+
         image = ImageProcessor.apply_transforms(
             image,
             config.get('rotate', 0),

@@ -1,4 +1,4 @@
-from PIL import Image, ImageOps, ImageEnhance
+from PIL import Image, ImageOps, ImageEnhance, ImageFilter
 import io
 import pillow_avif
 import pillow_heif
@@ -27,6 +27,27 @@ class ImageProcessor:
             left = 0
             right = w
         return image.crop((left, top, right, bottom))
+    @staticmethod
+    def apply_filter(image, filter_name):
+        """
+        Applies a predefined filter to the image.
+        """
+        if filter_name == "BLUR":
+            return image.filter(ImageFilter.BLUR)
+        elif filter_name == "CONTOUR":
+            return image.filter(ImageFilter.CONTOUR)
+        elif filter_name == "DETAIL":
+            return image.filter(ImageFilter.DETAIL)
+        elif filter_name == "EDGE_ENHANCE":
+            return image.filter(ImageFilter.EDGE_ENHANCE)
+        elif filter_name == "EMBOSS":
+            return image.filter(ImageFilter.EMBOSS)
+        elif filter_name == "SHARPEN":
+            return image.filter(ImageFilter.SHARPEN)
+        elif filter_name == "SMOOTH":
+            return image.filter(ImageFilter.SMOOTH)
+        return image
+
     @staticmethod
     def apply_enhancements(image, brightness=1.0, contrast=1.0, sharpness=1.0, saturation=1.0):
         """
