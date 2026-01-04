@@ -121,6 +121,7 @@ with st.sidebar.expander("Enhancements"):
     contrast = st.slider("Contrast", 0.0, 2.0, 1.0, 0.1, help="Adjust the contrast of the image.")
     saturation = st.slider("Saturation", 0.0, 2.0, 1.0, 0.1, help="Adjust the color intensity.")
     sharpness = st.slider("Sharpness", 0.0, 3.0, 1.0, 0.1, help="Adjust the sharpness of edges.")
+    filter_type = st.selectbox("Filter", ["None", "Blur", "Contour", "Detail", "Edge Enhance", "Emboss", "Sharpen", "Smooth"], index=0, help="Apply an image filter.")
 
 with st.sidebar.expander("Transforms"):
     rotate = st.selectbox("Rotate", [0, 90, 180, 270], help="Rotate the image clockwise.")

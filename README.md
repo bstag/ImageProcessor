@@ -33,13 +33,16 @@ A powerful, user-friendly web application built with **Streamlit** and **Pillow 
 
 ### 4. Workflow & Interface
 *   **Batch Processing**: Drag & drop multiple images at once.
-*   **High Performance**: Uses multi-threaded parallel processing for fast batch conversions.
+*   **High Performance**:
+    *   **Parallel Processing**: Uses multi-threaded parallel processing for fast batch conversions.
+    *   **Vectorized Operations**: Utilizes `Pillow.ImageChops` for high-speed color replacement and masking.
 *   **Visual Comparison**: Side-by-side "Original vs. Processed" preview.
 *   **Real-time Metrics**: See file size reduction savings instantly.
 *   **Persistence**: Processed results stay available during downloads (won't disappear on click).
 *   **Notifications**: Non-intrusive toast notifications for status updates.
-*   **Security**: Automatically sanitizes filenames to prevent path traversal issues during export.
-*   **Upload Constraints**: Enforced limits of **50 files** per batch and **200MB** total size to prevent abuse.
+*   **Security & Safety**:
+    *   **Input Validation**: Enforces limits on file count (50), total size (200MB), and image dimensions (10k px) to prevent resource exhaustion.
+    *   **Sanitization**: Automatically sanitizes filenames to prevent path traversal issues during export.
 *   **Export**: Download individual files or get everything in a single **ZIP archive**.
 
 ---
@@ -131,6 +134,5 @@ C:\Source\ImageProcessor\
 │
 └── tests/
     ├── test_processor.py # Unit tests for processing logic
-    ├── test_security.py  # Security and validation tests
-    └── test_utils.py     # Utility function tests
+    └── test_security.py  # Security and validation tests
 ```
