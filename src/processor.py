@@ -310,6 +310,58 @@ class ImageProcessor:
         return image
 
     @staticmethod
+    def convert_to_svg(image, **kwargs):
+        """
+        Converts a PIL Image to SVG string using vtracer.
+        """
+        import vtracer
+        import tempfile
+        import os
+        
+        # Save PIL image to temp file
+        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_in:
+            image.save(temp_in.name)
+            temp_in_path = temp_in.name
+            
+        temp_out_path = temp_in_path + ".svg"
+        
+        try:
+            # vtracer parameters
+            params = {
+                'colormode': kwargs.get('colormode', 'color'),
+                'hierarchical': kwargs.get('hierarchical', 'stacked'),
+                'mode': kwargs.get('mode', 'spline'),
+                'filter_speckle': kwargs.get('filter_speckle', 4),
+                'color_precision': kwargs.get('color_precision', 6),
+                'layer_difference': kwargs.get('layer_difference', 16),
+                'corner_threshold': kwargs.get('corner_threshold', 60),
+                'length_threshold': kwargs.get('length_threshold', 10),
+                'max_iterations': kwargs.get('max_iterations', 10),
+                'splice_threshold': kwargs.get('splice_threshold', 45),
+                'path_precision': kwargs.get('path_precision', 3)
+            }
+            
+            vtracer.convert_image_to_svg_py(temp_in_path, temp_out_path, **params)
+            
+            with open(temp_out_path, 'r', encoding='utf-8') as f:
+                svg_content = f.read()
+                
+            return svg_content
+            
+        finally:
+            # Cleanup
+            if os.path.exists(temp_in_path):
+                try:
+                    os.unlink(temp_in_path)
+                except:
+                    pass
+            if os.path.exists(temp_out_path):
+                try:
+                    os.unlink(temp_out_path)
+                except:
+                    pass
+
+    @staticmethod
     def process_and_save(image, output_format, quality=85, optimize=True, strip_metadata=True, lossless=False):
         """
         Process the image (conversion, compression) and return the bytes.

@@ -15,10 +15,11 @@ A powerful, user-friendly web application built with **Streamlit** and **Pillow 
 
 ### 2. Advanced Web Optimization
 *   **Input Support**: Seamlessly handles **HEIC/HEIF** files (common on iOS) in addition to standard formats.
-*   **Modern Output Formats**: Convert images to **WebP**, **AVIF**, JPEG, PNG, and BMP.
+*   **Modern Output Formats**: Convert images to **WebP**, **AVIF**, **SVG** (Vector), JPEG, PNG, and BMP.
 *   **Compression Control**:
     *   Adjustable **Quality Slider** (0-100).
     *   **Lossless Mode** for WebP and AVIF.
+    *   **Vectorization Settings** for SVG (Color Mode, Layering, Smoothing, etc.).
 *   **Metadata Stripping**: Automatically removes EXIF data to reduce file size.
 
 ### 3. Built-in Image Editor

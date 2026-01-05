@@ -36,9 +36,9 @@ mode = st.sidebar.radio(
 st.sidebar.subheader("Output Format")
 output_format = st.sidebar.selectbox(
     "Format",
-    ["WEBP", "AVIF", "JPEG", "PNG", "BMP"],
+    ["WEBP", "AVIF", "JPEG", "PNG", "BMP", "SVG"],
     index=0,
-    help="Select the file format for the processed images. WebP and AVIF offer better compression."
+    help="Select the file format for the processed images. WebP and AVIF offer better compression. SVG converts to vector."
 )
 
 lossless = False
@@ -58,6 +58,9 @@ if lossless:
 elif output_format in ['PNG', 'BMP']:
     quality_disabled = True
     quality_help = f"Quality selection is not applicable for {output_format} format."
+elif output_format == "SVG":
+    quality_disabled = True
+    quality_help = "Quality slider is not used for SVG conversion. Configure SVG settings below."
 
 quality_val = st.sidebar.slider(
     "Quality",
@@ -67,6 +70,25 @@ quality_val = st.sidebar.slider(
     disabled=quality_disabled,
     help=quality_help
 )
+
+# SVG Settings
+colormode = 'color'
+hierarchical = 'stacked'
+mode = 'spline'
+filter_speckle = 4
+color_precision = 6
+layer_difference = 16
+corner_threshold = 60
+
+if output_format == "SVG":
+    with st.sidebar.expander("SVG Settings", expanded=True):
+        colormode = st.selectbox("Color Mode", ["color", "binary"], index=0, help="Color vs Black & White.")
+        hierarchical = st.selectbox("Layering", ["stacked", "cutout"], index=0, help="Stacked = layers on top of each other. Cutout = no overlapping.")
+        mode = st.selectbox("Curve Mode", ["spline", "polygon", "none"], index=0, help="Curve smoothing method.")
+        filter_speckle = st.slider("Filter Speckle", 0, 128, 4, help="Remove small noise (pixels).")
+        color_precision = st.slider("Color Precision", 1, 8, 6, help="Number of significant bits to use (lower = fewer colors).")
+        layer_difference = st.slider("Gradient Threshold", 0, 128, 16, help="Threshold for color difference.")
+        corner_threshold = st.slider("Corner Threshold", 0, 180, 60, help="Minimum angle to be considered a corner.")
 
 if quality_disabled:
     quality = 100
@@ -224,6 +246,18 @@ if uploaded_files:
             'crop_mode': crop_mode
         }
 
+        # SVG Params
+        if output_format == "SVG":
+            config.update({
+                'colormode': colormode,
+                'hierarchical': hierarchical,
+                'mode': mode,
+                'filter_speckle': filter_speckle,
+                'color_precision': color_precision,
+                'layer_difference': layer_difference,
+                'corner_threshold': corner_threshold
+            })
+
         # Add conditional config
         if crop_mode == "Custom Box":
             config.update({
@@ -371,7 +405,16 @@ if uploaded_files:
                     st.image(item['original_image'], caption=f"Original ({format_bytes(item['original_size'])})")
                 with col2:
                     # Bolt: Use raw bytes ('data') instead of PIL object ('image') to avoid re-encoding overhead.
-                    st.image(item['data'], caption=f"Processed ({format_bytes(item['processed_size'])})")
+                    # SVG requires specific handling for display
+                    if item.get("data").startswith(b"<svg") or item.get("data").startswith(b"<?xml"):
+                         # Render SVG directly using markdown because st.image doesn't support SVG bytes directly
+                         import base64
+                         b64 = base64.b64encode(item['data']).decode("utf-8")
+                         html = f'<img src="data:image/svg+xml;base64,{b64}" width="100%"/>'
+                         st.markdown(html, unsafe_allow_html=True)
+                         st.caption(f"Processed ({format_bytes(item['processed_size'])})")
+                    else:
+                        st.image(item['data'], caption=f"Processed ({format_bytes(item['processed_size'])})")
                 
                 st.download_button(
                     label=f"Download {safe_name}",

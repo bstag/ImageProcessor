@@ -132,16 +132,24 @@ def process_image_task(file_content, config):
         original_has_transparency = ImageProcessor.has_transparency(original_image)
 
         # 2. Save/Optimize
-        output_io = ImageProcessor.process_and_save(
-            image,
-            config.get('output_format', 'JPEG'),
-            config.get('quality', 80),
-            optimize=True,
-            strip_metadata=config.get('strip_metadata', True),
-            lossless=config.get('lossless', False)
-        )
-        processed_data = output_io.getvalue()
-        processed_size = len(processed_data)
+        output_format = config.get('output_format', 'JPEG')
+        
+        if output_format == 'SVG':
+             # Convert to SVG string then to bytes
+             svg_content = ImageProcessor.convert_to_svg(image, **config)
+             processed_data = svg_content.encode('utf-8')
+             processed_size = len(processed_data)
+        else:
+             output_io = ImageProcessor.process_and_save(
+                image,
+                output_format,
+                config.get('quality', 80),
+                optimize=True,
+                strip_metadata=config.get('strip_metadata', True),
+                lossless=config.get('lossless', False)
+             )
+             processed_data = output_io.getvalue()
+             processed_size = len(processed_data)
 
         # Performance Optimization (Bolt):
         # 1. Return raw bytes for 'data' instead of BytesIO to avoid cursor state issues and multiple .getvalue() calls.

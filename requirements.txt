@@ -2,3 +2,4 @@ streamlit
 Pillow
 pillow-avif-plugin
 pillow-heif
+vtracer
