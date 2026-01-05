@@ -80,6 +80,11 @@ def process_image_task(file_content, config):
                     int(config.get('crop_aspect_h', 1))
                 )
 
+        # Pixelate
+        pixel_size = config.get('pixel_size', 1)
+        if pixel_size > 1:
+            image = ImageProcessor.pixelate(image, pixel_size)
+
         # Transparency Replacement
         if config.get('replace_color', False):
             rgb_color = config.get('trans_color_rgb')
@@ -94,6 +99,12 @@ def process_image_task(file_content, config):
         dominant_colors = []
         if config.get('extract_colors', False):
             dominant_colors = ImageProcessor.get_dominant_colors(original_image, 5)
+
+        # Histogram (if requested) - Calculate on processed image (or original? usually processed result is what matters)
+        # Let's calculate on the processed result so users see the effect of their changes
+        histogram_data = None
+        if config.get('show_histogram', False):
+            histogram_data = ImageProcessor.get_histogram_data(image)
 
         # Watermark
         wm_text = config.get('watermark_text')
@@ -145,7 +156,8 @@ def process_image_task(file_content, config):
             "data": processed_data,
             "original_image": original_image,
             "has_transparency": original_has_transparency,
-            "dominant_colors": dominant_colors
+            "dominant_colors": dominant_colors,
+            "histogram_data": histogram_data
         }
     except Exception as e:
         return {

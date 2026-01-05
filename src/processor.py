@@ -30,6 +30,40 @@ class ImageProcessor:
             right = w
         return image.crop((left, top, right, bottom))
     @staticmethod
+    def pixelate(image, pixel_size=10):
+        """
+        Applies a pixelation effect to the image.
+        pixel_size: Size of the pixels (larger = more blocky).
+        """
+        if pixel_size <= 1:
+            return image
+            
+        # Resize down
+        small = image.resize(
+            (max(1, image.width // pixel_size), max(1, image.height // pixel_size)),
+            resample=Image.Resampling.NEAREST
+        )
+        
+        # Resize up
+        return small.resize(image.size, resample=Image.Resampling.NEAREST)
+
+    @staticmethod
+    def get_histogram_data(image):
+        """
+        Returns histogram data for R, G, B channels.
+        """
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
+            
+        hist = image.histogram()
+        # Pillow returns concatenated list [r0..r255, g0..g255, b0..b255]
+        r = hist[0:256]
+        g = hist[256:512]
+        b = hist[512:768]
+        
+        return {"Red": r, "Green": g, "Blue": b}
+
+    @staticmethod
     def get_dominant_colors(image, num_colors=5):
         """
         Extracts the dominant colors from the image.

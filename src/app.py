@@ -171,6 +171,10 @@ with st.sidebar.expander("Watermark"):
 
 with st.sidebar.expander("Analysis"):
     extract_colors = st.checkbox("Extract Dominant Colors", help="Find and display the top 5 colors in the image.")
+    show_histogram = st.checkbox("Show Histogram", help="Display RGB color distribution charts.")
+
+with st.sidebar.expander("Effects"):
+    pixel_size = st.slider("Pixelate (Retro Effect)", 1, 100, 1, help="Increase to make the image look like 8-bit pixel art.")
 
 with st.sidebar.expander("Transparency"):
     replace_color = st.checkbox("Replace Color with Transparency", help="Make a specific color transparent.")
@@ -243,6 +247,12 @@ if uploaded_files:
 
         if extract_colors:
             config['extract_colors'] = True
+            
+        if show_histogram:
+            config['show_histogram'] = True
+
+        if pixel_size > 1:
+            config['pixel_size'] = pixel_size
 
         if watermark_text:
             config['watermark_text'] = watermark_text
@@ -284,7 +294,8 @@ if uploaded_files:
                         "data": result['data'],
                         "original_image": result['original_image'],
                         "has_transparency": result['has_transparency'],
-                        "dominant_colors": result.get('dominant_colors')
+                        "dominant_colors": result.get('dominant_colors'),
+                        "histogram_data": result.get('histogram_data')
                     })
                 else:
                     st.error(
