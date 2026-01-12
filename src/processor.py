@@ -390,6 +390,9 @@ class ImageProcessor:
              # We must restore the info afterwards to avoid side effects on the passed image object.
              original_info = image.info.copy()
              image.info.clear()
+             # Ensure EXIF is not written for formats that support EXIF
+             if output_format.upper() in ['JPEG', 'JPG', 'WEBP', 'AVIF', 'HEIF']:
+                 save_args['exif'] = b''
 
         try:
             image.save(output, **save_args)
