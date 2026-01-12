@@ -107,7 +107,7 @@ class TestImageProcessor(unittest.TestCase):
         self.assertIsNone(result_exif.get(271))
 
         # Check info dictionary for 'exif' key (raw bytes)
-        self.assertTrue('exif' not in result_img.info or not result_img.info['exif'])
+        self.assertFalse(result_img.info.get('exif'))
         
     def test_enhancements_effect(self):
         # Create a gray image
