@@ -383,14 +383,22 @@ class ImageProcessor:
              save_args['lossless'] = lossless
         
         # Metadata stripping is implicit if we don't copy exif, but we can be explicit
+        original_info = None
         if strip_metadata:
-             # Create a new image data without metadata
-             # Optimized: Efficiently copy pixel data to new image without metadata
-             # Previous implementation using list(getdata()) was O(N) in Python space
-             image_without_exif = Image.new(image.mode, image.size)
-             image_without_exif.paste(image)
-             image = image_without_exif
+             # Bolt Optimization: Avoid allocating a new image and copying pixels just to strip metadata.
+             # Clearing the info dictionary is O(1) compared to O(Pixels) for new()+paste().
+             # We must restore the info afterwards to avoid side effects on the passed image object.
+             original_info = image.info.copy()
+             image.info.clear()
+             # Ensure EXIF is not written for formats that support EXIF
+             if output_format.upper() in ['JPEG', 'JPG', 'WEBP', 'AVIF', 'HEIF']:
+                 save_args['exif'] = b''
 
-        image.save(output, **save_args)
+        try:
+            image.save(output, **save_args)
+        finally:
+            # Restore metadata to avoid mutating the original object
+            if original_info is not None:
+                image.info.update(original_info)
         output.seek(0)
         return output
