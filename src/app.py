@@ -425,4 +425,14 @@ if uploaded_files:
                 )
 
 else:
-    st.info("👋 Upload images above to begin processing.")
+    st.markdown("""
+### 👋 Welcome to Image Processor!
+
+Start by uploading your images above. This tool helps you:
+
+*   **Convert & Compress:** Save space with WebP and AVIF formats.
+*   **Batch Edit:** Resize, filter, and watermark up to 50 images at once.
+*   **Protect Privacy:** Automatically strip metadata (EXIF) from your photos.
+*   **Vectorize:** Convert raster images to SVG for infinite scalability.
+""")
+    st.info("👆 Drag and drop files to the uploader to get started.")
