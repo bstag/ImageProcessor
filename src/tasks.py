@@ -28,7 +28,7 @@ def process_image_task(file_content, config):
         # Security: Check dimensions immediately to prevent DoS (Pixel Flood)
         # Note: image.size is available without loading the full raster data
         if image.width > ImageProcessor.MAX_IMAGE_DIMENSION or image.height > ImageProcessor.MAX_IMAGE_DIMENSION:
-             raise ValueError(f"Image dimensions ({image.width}x{image.height}) exceed maximum allowed size ({ImageProcessor.MAX_IMAGE_DIMENSION}px)")
+            raise ValueError(f"Image dimensions ({image.width}x{image.height}) exceed maximum allowed size ({ImageProcessor.MAX_IMAGE_DIMENSION}px)")
 
         # Keep a copy of the original image for display in the UI.
         # Note: Returning PIL objects is suitable for threaded use; for process-based workers,
