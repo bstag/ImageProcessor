@@ -86,7 +86,7 @@ class TestImageProcessor(unittest.TestCase):
         # 1. Create a "real" image with EXIF data in memory
         img = Image.new('RGB', (100, 100), color='red')
         exif = img.getexif()
-        exif[271] = "TestMake" # Make
+        exif[271] = "TestMake"  # EXIF tag 271 represents the camera/scanner Make
 
         # Save to bytes to simulate a loaded file
         tmp = io.BytesIO()
