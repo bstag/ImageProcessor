@@ -83,13 +83,31 @@ class TestImageProcessor(unittest.TestCase):
         self.assertEqual(img_loaded.format, 'JPEG')
 
     def test_metadata_strip(self):
-        # Create image with dummy info (hard to inject real EXIF without extra libs, 
-        # but we can verify the function runs and returns a valid image without error)
-        # A more robust test would require loading an image with known EXIF.
-        # For now, we verify the output is a clean new image.
-        output = ImageProcessor.process_and_save(self.img, 'PNG', strip_metadata=True)
+        # 1. Create a "real" image with EXIF data in memory
+        img = Image.new('RGB', (100, 100), color='red')
+        exif = img.getexif()
+        exif[271] = "TestMake" # Make
+
+        # Save to bytes to simulate a loaded file
+        tmp = io.BytesIO()
+        img.save(tmp, 'JPEG', exif=exif.tobytes())
+        tmp.seek(0)
+
+        loaded_img = Image.open(tmp)
+
+        # 2. Call process_and_save with strip_metadata=True
+        output = ImageProcessor.process_and_save(loaded_img, 'JPEG', strip_metadata=True)
         output.seek(0)
-        self.assertTrue(output.getbuffer().nbytes > 0)
+
+        # 3. Load the output and verify EXIF/metadata is absent
+        result_img = Image.open(output)
+
+        # Check getexif
+        result_exif = result_img.getexif()
+        self.assertIsNone(result_exif.get(271))
+
+        # Check info dictionary for 'exif' key (raw bytes)
+        self.assertTrue('exif' not in result_img.info or not result_img.info['exif'])
         
     def test_enhancements_effect(self):
         # Create a gray image
