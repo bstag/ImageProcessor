@@ -108,7 +108,31 @@ class TestImageProcessor(unittest.TestCase):
 
         # Check info dictionary for 'exif' key (raw bytes)
         self.assertFalse(result_img.info.get('exif'))
-        
+
+    def test_metadata_preserve(self):
+        # 1. Create a "real" image with EXIF data in memory
+        img = Image.new('RGB', (100, 100), color='red')
+        exif = img.getexif()
+        exif[271] = "TestMake"  # EXIF tag 271 represents the camera/scanner Make
+
+        # Save to bytes to simulate a loaded file
+        tmp = io.BytesIO()
+        img.save(tmp, 'JPEG', exif=exif.tobytes())
+        tmp.seek(0)
+
+        loaded_img = Image.open(tmp)
+
+        # 2. Call process_and_save with strip_metadata=False
+        output = ImageProcessor.process_and_save(loaded_img, 'JPEG', strip_metadata=False)
+        output.seek(0)
+
+        # 3. Load the output and verify EXIF/metadata is preserved
+        result_img = Image.open(output)
+
+        # Check getexif
+        result_exif = result_img.getexif()
+        self.assertEqual(result_exif.get(271), "TestMake")
+
     def test_enhancements_effect(self):
         # Create a gray image
         img = Image.new('RGB', (100, 100), color=(100, 100, 100))

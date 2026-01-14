@@ -393,6 +393,13 @@ class ImageProcessor:
              # Ensure EXIF is not written for formats that support EXIF
              if output_format.upper() in ['JPEG', 'JPG', 'WEBP', 'AVIF', 'HEIF']:
                  save_args['exif'] = b''
+        elif output_format.upper() in ['JPEG', 'JPG', 'WEBP', 'AVIF', 'HEIF', 'PNG']:
+             # Preserve EXIF data if present and supported by format
+             if 'exif' in image.info:
+                 save_args['exif'] = image.info['exif']
+             # Also preserve ICC profile if present
+             if 'icc_profile' in image.info:
+                 save_args['icc_profile'] = image.info['icc_profile']
 
         try:
             image.save(output, **save_args)
