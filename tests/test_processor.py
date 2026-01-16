@@ -152,5 +152,21 @@ class TestImageProcessor(unittest.TestCase):
         enhanced = ImageProcessor.apply_enhancements(self.img, brightness=1.5, contrast=0.5)
         self.assertIsInstance(enhanced, Image.Image)
 
+    def test_get_dominant_colors(self):
+        # Create an image with clear dominant colors
+        img = Image.new('RGB', (100, 100), color='red')
+        # Add a blue square
+        for x in range(20):
+            for y in range(20):
+                img.putpixel((x, y), (0, 0, 255))
+
+        colors = ImageProcessor.get_dominant_colors(img, num_colors=2)
+        self.assertTrue(len(colors) > 0)
+        # Should contain red (#ff0000) and blue (#0000ff)
+        # Note: Quantization might alter exact hex values slightly depending on algorithm,
+        # but for pure colors it should be exact.
+        self.assertIn('#ff0000', colors)
+        self.assertIn('#0000ff', colors)
+
 if __name__ == '__main__':
     unittest.main()
