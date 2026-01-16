@@ -17,6 +17,7 @@ class TestLargeImageSecurity(unittest.TestCase):
         mock_image.size = (large_width, large_height)
         mock_image.width = large_width
         mock_image.height = large_height
+        mock_image.format = 'PNG'  # Ensure it passes the format check
         mock_image.copy.return_value = mock_image  # copy() returns the same mock
 
         # When Image.open is called, return our mock image
