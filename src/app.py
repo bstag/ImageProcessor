@@ -219,7 +219,7 @@ if uploaded_files:
 
     if not is_valid:
         st.error(f"Upload limit exceeded: {error_msg}")
-    elif st.button("Process Images", type="primary", help="Click to start processing all uploaded images with the selected settings."):
+    elif st.button(f"Process {len(uploaded_files)} Image{'s' if len(uploaded_files) > 1 else ''}", type="primary", icon=":material/auto_fix_high:", help="Click to start processing all uploaded images with the selected settings."):
         processed_images = []
         progress_bar = st.progress(0)
         
@@ -348,7 +348,7 @@ if uploaded_files:
 
     # Display Results if available in session state
     if st.session_state.processed_images:
-        if st.button("Clear Results", help="Clear all processed images and start over."):
+        if st.button("Clear Results", icon=":material/delete:", help="Clear all processed images and start over."):
             st.session_state.processed_images = None
             st.rerun()
 
@@ -378,6 +378,7 @@ if uploaded_files:
             file_name="processed_images.zip",
             mime="application/zip",
             type="primary",
+            icon=":material/archive:",
             help="Download all processed images in a single ZIP file."
         )
         
@@ -421,6 +422,7 @@ if uploaded_files:
                     data=item['data'],
                     file_name=f"processed_{name_stem}.{output_format.lower()}",
                     mime=f"image/{output_format.lower()}",
+                    icon=":material/download:",
                     help=f"Download {safe_name}"
                 )
 
