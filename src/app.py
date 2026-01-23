@@ -411,7 +411,7 @@ if uploaded_files:
                          # Render SVG directly using markdown because st.image doesn't support SVG bytes directly
                          import base64
                          b64 = base64.b64encode(item['data']).decode("utf-8")
-                         html = f'<img src="data:image/svg+xml;base64,{b64}" width="100%"/>'
+                         html = f'<img src="data:image/svg+xml;base64,{b64}" width="100%" alt="Processed SVG Image"/>'
                          st.markdown(html, unsafe_allow_html=True)
                          st.caption(f"Processed ({format_bytes(item['processed_size'])})")
                     else:
@@ -427,14 +427,27 @@ if uploaded_files:
                 )
 
 else:
-    st.markdown("""
-### 👋 Welcome to Image Processor!
+    st.markdown("### 👋 Welcome to Image Processor!")
+    st.markdown("Start by uploading your images above. This tool helps you:")
 
-Start by uploading your images above. This tool helps you:
+    col1, col2 = st.columns(2)
 
-*   **Convert & Compress:** Save space with WebP and AVIF formats.
-*   **Batch Edit:** Resize, filter, and watermark up to 50 images at once.
-*   **Protect Privacy:** Automatically strip metadata (EXIF) from your photos.
-*   **Vectorize:** Convert raster images to SVG for infinite scalability.
-""")
+    with col1:
+        st.markdown("""
+        **🚀 Convert & Compress**
+        Save space with WebP and AVIF formats.
+
+        **🔒 Protect Privacy**
+        Automatically strip metadata (EXIF).
+        """)
+
+    with col2:
+        st.markdown("""
+        **✨ Batch Edit**
+        Resize, filter, and watermark up to 50 images.
+
+        **📐 Vectorize**
+        Convert raster images to SVG.
+        """)
+
     st.info("👆 Drag and drop files to the uploader to get started.")
