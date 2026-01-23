@@ -168,5 +168,15 @@ class TestImageProcessor(unittest.TestCase):
         self.assertIn('#ff0000', colors)
         self.assertIn('#0000ff', colors)
 
+    def test_watermark_length_limit(self):
+        """
+        Test that add_watermark raises ValueError for excessively long strings.
+        """
+        img = Image.new('RGB', (100, 100), color='white')
+        long_text = "A" * 1001
+        with self.assertRaises(ValueError) as cm:
+            ImageProcessor.add_watermark(img, long_text)
+        self.assertIn("Watermark text exceeds maximum allowed length", str(cm.exception))
+
 if __name__ == '__main__':
     unittest.main()

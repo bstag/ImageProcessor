@@ -181,7 +181,7 @@ with st.sidebar.expander("Crop"):
             crop_aspect_h = st.number_input("Aspect Height", min_value=1, value=1, help="Height ratio (e.g., 9 for 16:9).")
 
 with st.sidebar.expander("Watermark"):
-    watermark_text = st.text_input("Watermark Text", help="Text to overlay on the image.")
+    watermark_text = st.text_input("Watermark Text", max_chars=100, help="Text to overlay on the image.")
     if watermark_text:
         wm_opacity = st.slider("Opacity", 0, 255, 128, help="Transparency of the watermark.")
         wm_size = st.number_input("Font Size", min_value=10, max_value=200, value=30, help="Size of the watermark text.")
