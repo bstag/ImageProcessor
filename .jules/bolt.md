@@ -9,3 +9,7 @@
 ## 2024-12-12 - Vectorized Image Color Replacement
 **Learning:** Iterating over image pixels using Python loops (`for item in image.getdata()`) is extremely slow. Even for a 1000x1000 image, this is 1 million iterations.
 **Action:** Replaced pixel iteration with Pillow's `Image.point()` (using lookup tables) and `ImageChops` math operations. This leverages C-level loops inside Pillow, resulting in a ~5x speedup (0.68s -> 0.14s) for color replacement operations.
+
+## 2024-05-22 - Avoid Defensive Image Copies
+**Learning:** `image.copy()` is expensive for large images as it duplicates the full pixel buffer. Often it's used defensively before analysis (like color extraction) or destructive edits.
+**Action:** Reorder the pipeline: perform non-destructive analysis first on the initial image object, then proceed with destructive edits. This eliminates the need for `image.copy()`. Also, store the original file bytes for UI display instead of the uncompressed PIL object to save memory.

@@ -37,14 +37,17 @@ def process_image_task(file_content, config):
         if image.width > ImageProcessor.MAX_IMAGE_DIMENSION or image.height > ImageProcessor.MAX_IMAGE_DIMENSION:
             raise ValueError(f"Image dimensions ({image.width}x{image.height}) exceed maximum allowed size ({ImageProcessor.MAX_IMAGE_DIMENSION}px)")
 
-        # Keep a copy of the original image for display in the UI.
-        # Note: Returning PIL objects is suitable for threaded use; for process-based workers,
-        # consider serializing image data instead.
-
-        original_image = image.copy()
         original_size = len(file_content)  # Size in bytes of the original uploaded file content
         # App uses uploaded_file.size for original_size (bytes); here we derive it from the raw file bytes.
         original_dimensions = image.size
+
+        # Extract Dominant Colors (if requested) - Calculate on original image
+        dominant_colors = []
+        if config.get('extract_colors', False):
+            dominant_colors = ImageProcessor.get_dominant_colors(image, 5)
+
+        # Check transparency - Check on original image
+        original_has_transparency = ImageProcessor.has_transparency(image)
 
         # Process
         # 0. Enhancements & Transforms
@@ -107,11 +110,6 @@ def process_image_task(file_content, config):
                     config.get('trans_tolerance', 10)
                 )
 
-        # Extract Dominant Colors (if requested)
-        dominant_colors = []
-        if config.get('extract_colors', False):
-            dominant_colors = ImageProcessor.get_dominant_colors(original_image, 5)
-
         # Histogram (if requested) - Calculate on processed image (or original? usually processed result is what matters)
         # Let's calculate on the processed result so users see the effect of their changes
         histogram_data = None
@@ -139,9 +137,6 @@ def process_image_task(file_content, config):
                 percentage=config.get('percentage'),
                 maintain_aspect_ratio=config.get('maintain_aspect', True)
             )
-
-        # Check transparency
-        original_has_transparency = ImageProcessor.has_transparency(original_image)
 
         # 2. Save/Optimize
         output_format = config.get('output_format', 'JPEG')
@@ -174,7 +169,7 @@ def process_image_task(file_content, config):
             "original_dimensions": original_dimensions,
             "processed_size": processed_size,
             "data": processed_data,
-            "original_image": original_image,
+            # "original_image": original_image, # Bolt Optimization: Removed to save memory
             "has_transparency": original_has_transparency,
             "dominant_colors": dominant_colors,
             "histogram_data": histogram_data
