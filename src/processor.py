@@ -97,6 +97,9 @@ class ImageProcessor:
         """
         if not text:
             return image
+
+        if len(text) > 1000:
+            raise ValueError("Watermark text exceeds maximum allowed length of 1000 characters")
             
         # Ensure image is RGBA for transparency support
         original_mode = image.mode
