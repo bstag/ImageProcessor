@@ -311,13 +311,13 @@ if uploaded_files:
 
             # Submit tasks
             future_to_file = {
-                executor.submit(process_image_task, content, config): (name, size)
+                executor.submit(process_image_task, content, config): (name, size, content)
                 for name, size, content in files_data
             }
 
             completed_count = 0
             for future in as_completed(future_to_file):
-                name, original_bytes_size = future_to_file[future]
+                name, original_bytes_size, content = future_to_file[future]
                 result = future.result()
                 
                 if result['success']:
@@ -326,7 +326,7 @@ if uploaded_files:
                         "original_size": original_bytes_size,
                         "processed_size": result['processed_size'],
                         "data": result['data'],
-                        "original_image": result['original_image'],
+                        "original_data": content, # Bolt Optimization: Store bytes instead of PIL object
                         "has_transparency": result['has_transparency'],
                         "dominant_colors": result.get('dominant_colors'),
                         "histogram_data": result.get('histogram_data')
@@ -403,7 +403,7 @@ if uploaded_files:
 
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.image(item['original_image'], caption=f"Original ({format_bytes(item['original_size'])})")
+                    st.image(item['original_data'], caption=f"Original ({format_bytes(item['original_size'])})")
                 with col2:
                     # Bolt: Use raw bytes ('data') instead of PIL object ('image') to avoid re-encoding overhead.
                     # SVG requires specific handling for display
