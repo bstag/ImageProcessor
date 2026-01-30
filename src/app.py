@@ -3,6 +3,7 @@ from PIL import Image
 import io
 import zipfile
 import os
+import html
 from processor import ImageProcessor
 from utils import format_bytes, get_unique_filename, get_safe_filename_stem, validate_upload_constraints
 from tasks import process_image_task
@@ -401,6 +402,10 @@ if uploaded_files:
                             st.color_picker(f"Color {idx+1}", color, disabled=True, key=f"c_{name_stem}_{idx}")
                             st.caption(color)
 
+                if item.get("histogram_data"):
+                    st.markdown("**RGB Histogram:**")
+                    st.line_chart(item["histogram_data"])
+
                 col1, col2 = st.columns(2)
                 with col1:
                     st.image(item['original_data'], caption=f"Original ({format_bytes(item['original_size'])})")
@@ -411,8 +416,9 @@ if uploaded_files:
                          # Render SVG directly using markdown because st.image doesn't support SVG bytes directly
                          import base64
                          b64 = base64.b64encode(item['data']).decode("utf-8")
-                         html = f'<img src="data:image/svg+xml;base64,{b64}" width="100%" alt="Processed SVG Image"/>'
-                         st.markdown(html, unsafe_allow_html=True)
+                         safe_alt = html.escape(safe_name)
+                         html_content = f'<img src="data:image/svg+xml;base64,{b64}" width="100%" alt="Processed SVG version of {safe_alt}" title="Processed SVG: {safe_alt}"/>'
+                         st.markdown(html_content, unsafe_allow_html=True)
                          st.caption(f"Processed ({format_bytes(item['processed_size'])})")
                     else:
                         st.image(item['data'], caption=f"Processed ({format_bytes(item['processed_size'])})")
