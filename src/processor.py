@@ -328,7 +328,7 @@ class ImageProcessor:
 
         try:
             # Save PIL image to temp file
-            # Security: Use try...finally to ensure cleanup of temporary files even if image.save() or conversion fails
+            # Resource management: Use try...finally to ensure cleanup of temporary files even if image.save() or conversion fails
             with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_in:
                 temp_in_path = temp_in.name
                 image.save(temp_in.name)
