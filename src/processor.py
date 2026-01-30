@@ -323,14 +323,18 @@ class ImageProcessor:
         import tempfile
         import os
         
-        # Save PIL image to temp file
-        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_in:
-            image.save(temp_in.name)
-            temp_in_path = temp_in.name
-            
-        temp_out_path = temp_in_path + ".svg"
-        
+        temp_in_path = None
+        temp_out_path = None
+
         try:
+            # Save PIL image to temp file
+            # Security: Use try...finally to ensure cleanup of temporary files even if image.save() or conversion fails
+            with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_in:
+                temp_in_path = temp_in.name
+                image.save(temp_in.name)
+
+            temp_out_path = temp_in_path + ".svg"
+
             # vtracer parameters
             params = {
                 'colormode': kwargs.get('colormode', 'color'),
@@ -355,12 +359,12 @@ class ImageProcessor:
             
         finally:
             # Cleanup
-            if os.path.exists(temp_in_path):
+            if temp_in_path and os.path.exists(temp_in_path):
                 try:
                     os.unlink(temp_in_path)
                 except:
                     pass
-            if os.path.exists(temp_out_path):
+            if temp_out_path and os.path.exists(temp_out_path):
                 try:
                     os.unlink(temp_out_path)
                 except:
