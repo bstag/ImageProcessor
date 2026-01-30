@@ -210,6 +210,11 @@ with st.sidebar.expander("Transparency"):
 if 'processed_images' not in st.session_state:
     st.session_state.processed_images = None
 
+if 'zip_data' not in st.session_state:
+    st.session_state.zip_data = None
+if 'zip_filename' not in st.session_state:
+    st.session_state.zip_filename = None
+
 if uploaded_files:
     st.subheader(f"Processing {len(uploaded_files)} Images")
     
@@ -343,6 +348,24 @@ if uploaded_files:
                 completed_count += 1
                 progress_bar.progress(completed_count / len(uploaded_files))
 
+        # Generate Zip (Bolt Optimization: Cache ZIP generation to eliminate render-blocking I/O)
+        if processed_images:
+            zip_buffer = io.BytesIO()
+            with zipfile.ZipFile(zip_buffer, "w") as zf:
+                for item in processed_images:
+                    # Security: Sanitize filename to prevent zip slip/path traversal
+                    name_stem = get_safe_filename_stem(item['name'])
+                    # Use config['output_format'] to ensure extension matches content
+                    ext = config.get('output_format', 'JPEG').lower()
+                    file_name = f"processed_{name_stem}.{ext}"
+                    zf.writestr(file_name, item['data'])
+
+            st.session_state.zip_data = zip_buffer.getvalue()
+            st.session_state.zip_filename = "processed_images.zip"
+        else:
+            st.session_state.zip_data = None
+            st.session_state.zip_filename = None
+
         # Store in session state
         st.session_state.processed_images = processed_images
         st.toast("Processing Complete!", icon='🎉')
@@ -351,6 +374,8 @@ if uploaded_files:
     if st.session_state.processed_images:
         if st.button("Clear Results", icon=":material/delete:", help="Clear all processed images and start over."):
             st.session_state.processed_images = None
+            st.session_state.zip_data = None
+            st.session_state.zip_filename = None
             st.rerun()
 
         # Recalculate totals for display
@@ -364,24 +389,16 @@ if uploaded_files:
         savings = (1 - total_processed_size / total_original_size) * 100 if total_original_size > 0 else 0
         col3.metric("Space Savings", f"{savings:.1f}%")
         
-        # Zip Download
-        zip_buffer = io.BytesIO()
-        with zipfile.ZipFile(zip_buffer, "w") as zf:
-            for item in st.session_state.processed_images:
-                # Security: Sanitize filename to prevent zip slip/path traversal
-                name_stem = get_safe_filename_stem(item['name'])
-                file_name = f"processed_{name_stem}.{output_format.lower()}"
-                zf.writestr(file_name, item['data'])
-        
-        st.download_button(
-            label="Download All as ZIP",
-            data=zip_buffer.getvalue(),
-            file_name="processed_images.zip",
-            mime="application/zip",
-            type="primary",
-            icon=":material/archive:",
-            help="Download all processed images in a single ZIP file."
-        )
+        if st.session_state.zip_data:
+            st.download_button(
+                label="Download All as ZIP",
+                data=st.session_state.zip_data,
+                file_name=st.session_state.zip_filename,
+                mime="application/zip",
+                type="primary",
+                icon=":material/archive:",
+                help="Download all processed images in a single ZIP file."
+            )
         
         # Individual Previews
         st.subheader("Detailed Results")
