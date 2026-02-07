@@ -102,23 +102,11 @@ strip_metadata = st.sidebar.checkbox(
     help="Remove EXIF data (camera settings, location, etc.) to reduce file size and protect privacy."
 )
 
-if output_format == "SVG":
-    optimize_encoding = st.sidebar.checkbox(
-        "Optimize Encoding",
-        value=False,
-        disabled=True,
-        help=(
-            "Perform extra compression passes to reduce file size for raster formats "
-            "(JPEG, PNG, WebP, AVIF, etc.). This setting does not apply to SVG output "
-            "and is therefore disabled."
-        ),
-    )
-else:
-    optimize_encoding = st.sidebar.checkbox(
-        "Optimize Encoding",
-        value=False,
-        help="Perform extra compression passes to reduce file size. Disabling this speeds up processing significantly (up to 3x).",
-    )
+optimize_encoding = st.sidebar.checkbox(
+    "Optimize Encoding",
+    value=False,
+    help="Perform extra compression passes to reduce file size. Disabling this speeds up processing significantly (up to 3x)."
+)
 
 # Resizing Options
 st.sidebar.subheader("Resizing")

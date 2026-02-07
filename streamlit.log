@@ -4,8 +4,21 @@ Collecting usage statistics. To deactivate, set browser.gatherUsageStats to fals
 
   You can now view your Streamlit app in your browser.
 
-  Local URL: http://localhost:8501
-  Network URL: http://192.168.0.2:8501
-  External URL: http://35.224.132.190:8501
+  URL: http://localhost:8501
 
+2026-01-30 14:15:19.853 MediaFileHandler: Missing file 798b3d9cb531f15baf6e0be4bff9cf783ab79400f6f9a41016ac61b2.zip
+Traceback (most recent call last):
+  File "/home/jules/.pyenv/versions/3.12.12/lib/python3.12/site-packages/streamlit/runtime/memory_media_file_storage.py", line 152, in get_file
+    return self._files_by_id[file_id]
+           ~~~~~~~~~~~~~~~~~^^^^^^^^^
+KeyError: '798b3d9cb531f15baf6e0be4bff9cf783ab79400f6f9a41016ac61b2'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/jules/.pyenv/versions/3.12.12/lib/python3.12/site-packages/streamlit/web/server/media_file_handler.py", line 95, in validate_absolute_path
+    self._storage.get_file(absolute_path)
+  File "/home/jules/.pyenv/versions/3.12.12/lib/python3.12/site-packages/streamlit/runtime/memory_media_file_storage.py", line 154, in get_file
+    raise MediaFileStorageError(
+streamlit.runtime.media_file_storage.MediaFileStorageError: Bad filename '798b3d9cb531f15baf6e0be4bff9cf783ab79400f6f9a41016ac61b2.zip'. (No media file with id '798b3d9cb531f15baf6e0be4bff9cf783ab79400f6f9a41016ac61b2')
   Stopping...

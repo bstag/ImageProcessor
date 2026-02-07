@@ -371,7 +371,7 @@ class ImageProcessor:
                     pass
 
     @staticmethod
-    def process_and_save(image, output_format, quality=85, optimize=True, strip_metadata=True, lossless=False):
+    def process_and_save(image, output_format, quality=85, optimize=False, strip_metadata=True, lossless=False):
         """
         Process the image (conversion, compression) and return the bytes.
         """
