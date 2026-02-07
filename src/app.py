@@ -411,11 +411,12 @@ if uploaded_files:
             orig_size = item['original_size']
             proc_size = item['processed_size']
             savings = (1 - proc_size / orig_size) * 100 if orig_size > 0 else 0
+            rounded_savings = round(savings, 1)
 
             label_text = f"{safe_name} ({format_bytes(orig_size)} → {format_bytes(proc_size)})"
-            if savings != 0:
-                icon = "⬇" if savings > 0 else "⬆"
-                label_text += f" {icon} {abs(savings):.1f}%"
+            if rounded_savings != 0:
+                icon = "⬇" if rounded_savings > 0 else "⬆"
+                label_text += f" {icon} {abs(rounded_savings):.1f}%"
 
             with st.expander(label_text):
                 if item.get("has_transparency"):
