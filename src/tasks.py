@@ -151,7 +151,7 @@ def process_image_task(file_content, config):
                 image,
                 output_format,
                 config.get('quality', 80),
-                optimize=True,
+                optimize=config.get('optimize_encoding', False),
                 strip_metadata=config.get('strip_metadata', True),
                 lossless=config.get('lossless', False)
              )

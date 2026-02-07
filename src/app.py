@@ -102,6 +102,12 @@ strip_metadata = st.sidebar.checkbox(
     help="Remove EXIF data (camera settings, location, etc.) to reduce file size and protect privacy."
 )
 
+optimize_encoding = st.sidebar.checkbox(
+    "Optimize Encoding",
+    value=False,
+    help="Perform extra compression passes to reduce file size. Disabling this speeds up processing significantly (up to 3x)."
+)
+
 # Resizing Options
 st.sidebar.subheader("Resizing")
 resize_type = st.sidebar.selectbox(
@@ -226,6 +232,100 @@ if uploaded_files:
     if not is_valid:
         st.error(f"Upload limit exceeded: {error_msg}")
     elif st.button(f"Process {len(uploaded_files)} Image{'s' if len(uploaded_files) > 1 else ''}", type="primary", icon=":material/auto_fix_high:", help="Click to start processing all uploaded images with the selected settings."):
+        processed_images = []
+        progress_bar = st.progress(0)
+        
+        # Prepare configuration dictionary
+        config = {
+            'brightness': brightness,
+            'contrast': contrast,
+            'sharpness': sharpness,
+            'saturation': saturation,
+            'filter_type': filter_type,
+            'rotate': rotate,
+            'flip_h': flip_h,
+            'flip_v': flip_v,
+            'grayscale': grayscale,
+            'resize_type': resize_type,
+            'width': width,
+            'height': height,
+            'percentage': percentage,
+            'maintain_aspect': maintain_aspect,
+            'output_format': output_format,
+            'quality': quality,
+            'strip_metadata': strip_metadata,
+            'optimize_encoding': optimize_encoding,
+            'lossless': lossless,
+            'crop_mode': crop_mode
+        }
+
+        # SVG Params
+        if output_format == "SVG":
+            config.update({
+                'colormode': colormode,
+                'hierarchical': hierarchical,
+                'mode': mode,
+                'filter_speckle': filter_speckle,
+                'color_precision': color_precision,
+                'layer_difference': layer_difference,
+                'corner_threshold': corner_threshold
+            })
+
+        # Add conditional config
+        if crop_mode == "Custom Box":
+            config.update({
+                'crop_left': crop_left,
+                'crop_top': crop_top,
+                'crop_right': crop_right,
+                'crop_bottom': crop_bottom
+            })
+        elif crop_mode == "Aspect Center":
+            config.update({
+                'crop_aspect_w': crop_aspect_w,
+                'crop_aspect_h': crop_aspect_h
+            })
+
+        if replace_color:
+            tc = trans_color.lstrip('#')
+            rgb_color = tuple(int(tc[i:i+2], 16) for i in (0, 2, 4))
+            config['replace_color'] = True
+            config['trans_color_rgb'] = rgb_color
+            config['trans_tolerance'] = trans_tolerance
+
+        if extract_colors:
+            config['extract_colors'] = True
+            
+        if show_histogram:
+            config['show_histogram'] = True
+
+        if pixel_size > 1:
+            config['pixel_size'] = pixel_size
+
+        if watermark_text:
+            config['watermark_text'] = watermark_text
+            config['wm_opacity'] = wm_opacity
+            config['wm_size'] = wm_size
+            wm_c = wm_color.lstrip('#')
+            config['wm_color'] = tuple(int(wm_c[i:i+2], 16) for i in (0, 2, 4))
+
+        # Parallel Processing
+        # Bolt Optimization: Parallelize image processing to improve performance for multiple uploads
+        # Limit the number of worker threads to avoid excessive memory usage when processing many images
+        max_workers = 1
+        if uploaded_files:
+            cpu_count = os.cpu_count() or 1
+            # Cap workers by CPU count, number of files, and a small upper bound to control memory usage
+            max_workers = min(8, cpu_count, len(uploaded_files))
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # We must read file content here because Streamlit's UploadedFile isn't thread-safe for reading across threads
+            # (or rather, we want to ensure we have the data ready)
+            files_data = [(f.name, f.size, f.getvalue()) for f in uploaded_files]
+
+            # Submit tasks
+            future_to_file = {
+                executor.submit(process_image_task, content, config): (name, size, content)
+                for name, size, content in files_data
         with st.spinner("Processing images..."):
             processed_images = []
             progress_bar = st.progress(0)
