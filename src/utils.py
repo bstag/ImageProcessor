@@ -1,7 +1,8 @@
 import os
 import uuid
+from typing import List, Tuple, Union, IO, Any
 
-def format_bytes(size):
+def format_bytes(size: float) -> str:
     # 2**10 = 1024
     power = 2**10
     n = 0
@@ -11,13 +12,13 @@ def format_bytes(size):
         n += 1
     return f"{size:.2f} {power_labels[n]}"
 
-def get_unique_filename(original_filename, output_dir, suffix="processed"):
+def get_unique_filename(original_filename: str, output_dir: str, suffix: str = "processed") -> str:
     base, ext = os.path.splitext(original_filename)
     unique_id = str(uuid.uuid4())[:8]
     new_filename = f"{base}_{suffix}_{unique_id}{ext}"
     return os.path.join(output_dir, new_filename)
 
-def get_file_info(file_path):
+def get_file_info(file_path: str) -> dict:
     size = os.path.getsize(file_path)
     return {
         "name": os.path.basename(file_path),
@@ -25,7 +26,7 @@ def get_file_info(file_path):
         "size_formatted": format_bytes(size)
     }
 
-def get_safe_filename_stem(filename):
+def get_safe_filename_stem(filename: str) -> str:
     """
     Return a sanitized filename stem (name without directory or extension).
 
@@ -59,7 +60,7 @@ def get_safe_filename_stem(filename):
         name_stem = "image"
     return name_stem
 
-def validate_upload_constraints(files, max_count=50, max_total_size_mb=200):
+def validate_upload_constraints(files: List[Any], max_count: int = 50, max_total_size_mb: int = 200) -> Tuple[bool, Union[str, None]]:
     """
     Validates that the uploaded files do not exceed the file count or total size limits.
 

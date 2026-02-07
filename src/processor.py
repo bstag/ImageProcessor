@@ -2,6 +2,7 @@ from PIL import Image, ImageOps, ImageEnhance, ImageFilter, ImageChops, ImageFil
 import io
 import pillow_avif
 import pillow_heif
+from typing import List, Tuple, Optional, Union, Dict, Any
 
 # Register HEIF opener
 pillow_heif.register_heif_opener()
@@ -11,7 +12,7 @@ class ImageProcessor:
     MAX_IMAGE_DIMENSION = 6000
 
     @staticmethod
-    def center_crop_to_aspect(image, target_w, target_h):
+    def center_crop_to_aspect(image: Image.Image, target_w: int, target_h: int) -> Image.Image:
         w, h = image.size
         if target_w <= 0 or target_h <= 0:
             return image
@@ -31,7 +32,7 @@ class ImageProcessor:
             right = w
         return image.crop((left, top, right, bottom))
     @staticmethod
-    def pixelate(image, pixel_size=10):
+    def pixelate(image: Image.Image, pixel_size: int = 10) -> Image.Image:
         """
         Applies a pixelation effect to the image.
         pixel_size: Size of the pixels (larger = more blocky).
@@ -49,7 +50,7 @@ class ImageProcessor:
         return small.resize(image.size, resample=Image.Resampling.NEAREST)
 
     @staticmethod
-    def get_histogram_data(image):
+    def get_histogram_data(image: Image.Image) -> Dict[str, List[int]]:
         """
         Returns histogram data for R, G, B channels.
         """
@@ -65,7 +66,7 @@ class ImageProcessor:
         return {"Red": r, "Green": g, "Blue": b}
 
     @staticmethod
-    def get_dominant_colors(image, num_colors=5):
+    def get_dominant_colors(image: Image.Image, num_colors: int = 5) -> List[str]:
         """
         Extracts the dominant colors from the image.
         Returns a list of hex color strings.
@@ -92,7 +93,7 @@ class ImageProcessor:
         return colors
 
     @staticmethod
-    def add_watermark(image, text, opacity=128, font_size=30, color=(255, 255, 255)):
+    def add_watermark(image: Image.Image, text: str, opacity: int = 128, font_size: int = 30, color: Tuple[int, int, int] = (255, 255, 255)) -> Image.Image:
         """
         Adds a text watermark to the bottom-right of the image.
         """
@@ -145,7 +146,7 @@ class ImageProcessor:
         return watermarked
 
     @staticmethod
-    def apply_filter(image, filter_name):
+    def apply_filter(image: Image.Image, filter_name: str) -> Image.Image:
         """
         Applies a predefined filter to the image.
         """
@@ -166,7 +167,7 @@ class ImageProcessor:
         return image
 
     @staticmethod
-    def apply_enhancements(image, brightness=1.0, contrast=1.0, sharpness=1.0, saturation=1.0):
+    def apply_enhancements(image: Image.Image, brightness: float = 1.0, contrast: float = 1.0, sharpness: float = 1.0, saturation: float = 1.0) -> Image.Image:
         """
         Applies color and sharpness enhancements to the image.
         """
@@ -189,7 +190,7 @@ class ImageProcessor:
         return image
 
     @staticmethod
-    def apply_transforms(image, rotate=0, flip_horizontal=False, flip_vertical=False, grayscale=False):
+    def apply_transforms(image: Image.Image, rotate: int = 0, flip_horizontal: bool = False, flip_vertical: bool = False, grayscale: bool = False) -> Image.Image:
         """
         Applies geometric transformations and filters.
         """
@@ -210,7 +211,7 @@ class ImageProcessor:
         return image
 
     @staticmethod
-    def resize_image(image, width=None, height=None, percentage=None, maintain_aspect_ratio=True):
+    def resize_image(image: Image.Image, width: Optional[int] = None, height: Optional[int] = None, percentage: Optional[int] = None, maintain_aspect_ratio: bool = True) -> Image.Image:
         """
         Resizes the image based on provided parameters.
         """
@@ -251,14 +252,14 @@ class ImageProcessor:
         return image.resize((new_width, new_height), Image.Resampling.LANCZOS)
 
     @staticmethod
-    def crop_image(image, left, top, right, bottom):
+    def crop_image(image: Image.Image, left: int, top: int, right: int, bottom: int) -> Image.Image:
         """
         Crops the image using the provided coordinates.
         """
         return image.crop((left, top, right, bottom))
 
     @staticmethod
-    def has_transparency(image):
+    def has_transparency(image: Image.Image) -> bool:
         """
         Checks if the image has transparency (alpha channel or transparency info).
         """
@@ -267,7 +268,7 @@ class ImageProcessor:
         return False
 
     @staticmethod
-    def replace_color_with_transparency(image, target_color, tolerance=0):
+    def replace_color_with_transparency(image: Image.Image, target_color: Tuple[int, int, int], tolerance: int = 0) -> Image.Image:
         """
         Replaces a target color with transparency using Pillow's native C operations.
         Optimized to be much faster than pixel iteration.
@@ -316,7 +317,7 @@ class ImageProcessor:
         return image
 
     @staticmethod
-    def convert_to_svg(image, **kwargs):
+    def convert_to_svg(image: Image.Image, **kwargs: Any) -> str:
         """
         Converts a PIL Image to SVG string using vtracer.
         """
@@ -374,7 +375,7 @@ class ImageProcessor:
                     pass
 
     @staticmethod
-    def process_and_save(image, output_format, quality=85, optimize=False, strip_metadata=True, lossless=False):
+    def process_and_save(image: Image.Image, output_format: str, quality: int = 85, optimize: bool = False, strip_metadata: bool = True, lossless: bool = False) -> io.BytesIO:
         """
         Process the image (conversion, compression) and return the bytes.
         """

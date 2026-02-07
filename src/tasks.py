@@ -1,8 +1,13 @@
 from processor import ImageProcessor
 from PIL import Image
 import io
+from typing import Dict, Any, Union
+from logging_config import setup_logging
 
-def process_image_task(file_content, config):
+# Setup logger
+logger = setup_logging()
+
+def process_image_task(file_content: bytes, config: Dict[str, Any]) -> Dict[str, Any]:
     """
     Worker function to process a single image.
     Args:
@@ -30,16 +35,22 @@ def process_image_task(file_content, config):
         # This protects against attacks where a malicious file (e.g. SGI, PCX) is uploaded with a safe extension (.png).
         ALLOWED_FORMATS = {'PNG', 'JPEG', 'MPO', 'BMP', 'WEBP', 'HEIC', 'HEIF', 'AVIF'}
         if image.format not in ALLOWED_FORMATS:
-             raise ValueError(f"Security violation: Image format '{image.format}' is not allowed.")
+             error_msg = f"Security violation: Image format '{image.format}' is not allowed."
+             logger.warning(error_msg)
+             raise ValueError(error_msg)
 
         # Security: Check dimensions immediately to prevent DoS (Pixel Flood)
         # Note: image.size is available without loading the full raster data
         if image.width > ImageProcessor.MAX_IMAGE_DIMENSION or image.height > ImageProcessor.MAX_IMAGE_DIMENSION:
-            raise ValueError(f"Image dimensions ({image.width}x{image.height}) exceed maximum allowed size ({ImageProcessor.MAX_IMAGE_DIMENSION}px)")
+            error_msg = f"Image dimensions ({image.width}x{image.height}) exceed maximum allowed size ({ImageProcessor.MAX_IMAGE_DIMENSION}px)"
+            logger.warning(error_msg)
+            raise ValueError(error_msg)
 
         original_size = len(file_content)  # Size in bytes of the original uploaded file content
         # App uses uploaded_file.size for original_size (bytes); here we derive it from the raw file bytes.
         original_dimensions = image.size
+        
+        logger.info(f"Processing image: Size={original_size} bytes, Dimensions={original_dimensions}")
 
         # Extract Dominant Colors (if requested) - Calculate on original image
         dominant_colors = []
@@ -163,6 +174,8 @@ def process_image_task(file_content, config):
         # 2. Do NOT return the processed PIL 'image'. It's large (uncompressed) and we can use 'data' (bytes) for display.
         #    This significantly reduces memory usage in st.session_state and avoids re-encoding overhead in st.image().
 
+        logger.info(f"Successfully processed image. Output size: {processed_size} bytes")
+
         return {
             "success": True,
             "original_size": original_size,
@@ -175,6 +188,7 @@ def process_image_task(file_content, config):
             "histogram_data": histogram_data
         }
     except Exception as e:
+        logger.error(f"Error processing image: {str(e)}", exc_info=True)
         return {
             "success": False,
             "error": str(e)
