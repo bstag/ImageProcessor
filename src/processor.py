@@ -7,7 +7,8 @@ import pillow_heif
 pillow_heif.register_heif_opener()
 
 class ImageProcessor:
-    MAX_IMAGE_DIMENSION = 10000
+    # Reduced from 10000 to 6000 to prevent DoS via memory exhaustion (Pixel Flood)
+    MAX_IMAGE_DIMENSION = 6000
 
     @staticmethod
     def center_crop_to_aspect(image, target_w, target_h):
@@ -331,7 +332,9 @@ class ImageProcessor:
             # Resource management: Use try...finally to ensure cleanup of temporary files even if image.save() or conversion fails
             with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_in:
                 temp_in_path = temp_in.name
-                image.save(temp_in.name)
+
+            # Close the file handle before writing to it via path to avoid locking issues on Windows
+            image.save(temp_in_path)
 
             temp_out_path = temp_in_path + ".svg"
 

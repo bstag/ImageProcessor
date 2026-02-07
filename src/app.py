@@ -132,9 +132,9 @@ if resize_type == "Percentage":
 elif resize_type == "Fixed Dimensions":
     col1, col2 = st.sidebar.columns(2)
     with col1:
-        width = st.sidebar.number_input("Width (px)", min_value=1, max_value=10000, value=800, help="Target width in pixels.")
+        width = st.sidebar.number_input("Width (px)", min_value=1, max_value=ImageProcessor.MAX_IMAGE_DIMENSION, value=800, help="Target width in pixels.")
     with col2:
-        height = st.sidebar.number_input("Height (px)", min_value=1, max_value=10000, value=600, help="Target height in pixels.")
+        height = st.sidebar.number_input("Height (px)", min_value=1, max_value=ImageProcessor.MAX_IMAGE_DIMENSION, value=600, help="Target height in pixels.")
     maintain_aspect = st.sidebar.checkbox(
         "Maintain Aspect Ratio",
         value=True,
@@ -326,56 +326,150 @@ if uploaded_files:
             future_to_file = {
                 executor.submit(process_image_task, content, config): (name, size, content)
                 for name, size, content in files_data
+        with st.spinner("Processing images..."):
+            processed_images = []
+            progress_bar = st.progress(0)
+
+            # Prepare configuration dictionary
+            config = {
+                'brightness': brightness,
+                'contrast': contrast,
+                'sharpness': sharpness,
+                'saturation': saturation,
+                'filter_type': filter_type,
+                'rotate': rotate,
+                'flip_h': flip_h,
+                'flip_v': flip_v,
+                'grayscale': grayscale,
+                'resize_type': resize_type,
+                'width': width,
+                'height': height,
+                'percentage': percentage,
+                'maintain_aspect': maintain_aspect,
+                'output_format': output_format,
+                'quality': quality,
+                'strip_metadata': strip_metadata,
+                'lossless': lossless,
+                'crop_mode': crop_mode
             }
 
-            completed_count = 0
-            for future in as_completed(future_to_file):
-                name, original_bytes_size, content = future_to_file[future]
-                result = future.result()
-                
-                if result['success']:
-                    processed_images.append({
-                        "name": name,
-                        "original_size": original_bytes_size,
-                        "processed_size": result['processed_size'],
-                        "data": result['data'],
-                        "original_data": content, # Bolt Optimization: Store bytes instead of PIL object
-                        "has_transparency": result['has_transparency'],
-                        "dominant_colors": result.get('dominant_colors'),
-                        "histogram_data": result.get('histogram_data')
-                    })
-                else:
-                    st.error(
-                        f"Error processing file '{name}' "
-                        f"(size: {format_bytes(original_bytes_size)}, "
-                        f"output format: {config.get('output_format', 'original')}): "
-                        f"{result['error']}"
-                    )
-                
-                completed_count += 1
-                progress_bar.progress(completed_count / len(uploaded_files))
+            # SVG Params
+            if output_format == "SVG":
+                config.update({
+                    'colormode': colormode,
+                    'hierarchical': hierarchical,
+                    'mode': mode,
+                    'filter_speckle': filter_speckle,
+                    'color_precision': color_precision,
+                    'layer_difference': layer_difference,
+                    'corner_threshold': corner_threshold
+                })
 
-        # Generate Zip (Bolt Optimization: Cache ZIP generation to eliminate render-blocking I/O)
-        if processed_images:
-            zip_buffer = io.BytesIO()
-            with zipfile.ZipFile(zip_buffer, "w") as zf:
-                for item in processed_images:
-                    # Security: Sanitize filename to prevent zip slip/path traversal
-                    name_stem = get_safe_filename_stem(item['name'])
-                    # Use config['output_format'] to ensure extension matches content
-                    ext = config.get('output_format', 'JPEG').lower()
-                    file_name = f"processed_{name_stem}.{ext}"
-                    zf.writestr(file_name, item['data'])
+            # Add conditional config
+            if crop_mode == "Custom Box":
+                config.update({
+                    'crop_left': crop_left,
+                    'crop_top': crop_top,
+                    'crop_right': crop_right,
+                    'crop_bottom': crop_bottom
+                })
+            elif crop_mode == "Aspect Center":
+                config.update({
+                    'crop_aspect_w': crop_aspect_w,
+                    'crop_aspect_h': crop_aspect_h
+                })
 
-            st.session_state.zip_data = zip_buffer.getvalue()
-            st.session_state.zip_filename = "processed_images.zip"
-        else:
-            st.session_state.zip_data = None
-            st.session_state.zip_filename = None
+            if replace_color:
+                tc = trans_color.lstrip('#')
+                rgb_color = tuple(int(tc[i:i+2], 16) for i in (0, 2, 4))
+                config['replace_color'] = True
+                config['trans_color_rgb'] = rgb_color
+                config['trans_tolerance'] = trans_tolerance
 
-        # Store in session state
-        st.session_state.processed_images = processed_images
-        st.toast("Processing Complete!", icon='🎉')
+            if extract_colors:
+                config['extract_colors'] = True
+
+            if show_histogram:
+                config['show_histogram'] = True
+
+            if pixel_size > 1:
+                config['pixel_size'] = pixel_size
+
+            if watermark_text:
+                config['watermark_text'] = watermark_text
+                config['wm_opacity'] = wm_opacity
+                config['wm_size'] = wm_size
+                wm_c = wm_color.lstrip('#')
+                config['wm_color'] = tuple(int(wm_c[i:i+2], 16) for i in (0, 2, 4))
+
+            # Parallel Processing
+            # Bolt Optimization: Parallelize image processing to improve performance for multiple uploads
+            # Limit the number of worker threads to avoid excessive memory usage when processing many images
+            max_workers = 1
+            if uploaded_files:
+                cpu_count = os.cpu_count() or 1
+                # Cap workers by CPU count, number of files, and a small upper bound to control memory usage
+                max_workers = min(8, cpu_count, len(uploaded_files))
+
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                # We must read file content here because Streamlit's UploadedFile isn't thread-safe for reading across threads
+                # (or rather, we want to ensure we have the data ready)
+                files_data = [(f.name, f.size, f.getvalue()) for f in uploaded_files]
+
+                # Submit tasks
+                future_to_file = {
+                    executor.submit(process_image_task, content, config): (name, size, content)
+                    for name, size, content in files_data
+                }
+
+                completed_count = 0
+                for future in as_completed(future_to_file):
+                    name, original_bytes_size, content = future_to_file[future]
+                    result = future.result()
+
+                    if result['success']:
+                        processed_images.append({
+                            "name": name,
+                            "original_size": original_bytes_size,
+                            "processed_size": result['processed_size'],
+                            "data": result['data'],
+                            "original_data": content, # Bolt Optimization: Store bytes instead of PIL object
+                            "has_transparency": result['has_transparency'],
+                            "dominant_colors": result.get('dominant_colors'),
+                            "histogram_data": result.get('histogram_data')
+                        })
+                    else:
+                        st.error(
+                            f"Error processing file '{name}' "
+                            f"(size: {format_bytes(original_bytes_size)}, "
+                            f"output format: {config.get('output_format', 'original')}): "
+                            f"{result['error']}"
+                        )
+
+                    completed_count += 1
+                    progress_bar.progress(completed_count / len(uploaded_files))
+
+            # Generate Zip (Bolt Optimization: Cache ZIP generation to eliminate render-blocking I/O)
+            if processed_images:
+                zip_buffer = io.BytesIO()
+                with zipfile.ZipFile(zip_buffer, "w") as zf:
+                    for item in processed_images:
+                        # Security: Sanitize filename to prevent zip slip/path traversal
+                        name_stem = get_safe_filename_stem(item['name'])
+                        # Use config['output_format'] to ensure extension matches content
+                        ext = config.get('output_format', 'JPEG').lower()
+                        file_name = f"processed_{name_stem}.{ext}"
+                        zf.writestr(file_name, item['data'])
+
+                st.session_state.zip_data = zip_buffer.getvalue()
+                st.session_state.zip_filename = "processed_images.zip"
+            else:
+                st.session_state.zip_data = None
+                st.session_state.zip_filename = None
+
+            # Store in session state
+            st.session_state.processed_images = processed_images
+            st.toast("Processing Complete!", icon='🎉')
 
     # Display Results if available in session state
     if st.session_state.processed_images:
@@ -414,7 +508,17 @@ if uploaded_files:
             safe_name = os.path.basename(item['name'])
             name_stem = get_safe_filename_stem(item['name'])
 
-            with st.expander(f"{safe_name} -> {format_bytes(item['processed_size'])}"):
+            orig_size = item['original_size']
+            proc_size = item['processed_size']
+            savings = (1 - proc_size / orig_size) * 100 if orig_size > 0 else 0
+            rounded_savings = round(savings, 1)
+
+            label_text = f"{safe_name} ({format_bytes(orig_size)} → {format_bytes(proc_size)})"
+            if rounded_savings != 0:
+                icon = "⬇" if rounded_savings > 0 else "⬆"
+                label_text += f" {icon} {abs(rounded_savings):.1f}%"
+
+            with st.expander(label_text):
                 if item.get("has_transparency"):
                     st.caption("ℹ️ Original image has transparency")
                 
