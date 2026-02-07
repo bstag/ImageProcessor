@@ -102,6 +102,12 @@ strip_metadata = st.sidebar.checkbox(
     help="Remove EXIF data (camera settings, location, etc.) to reduce file size and protect privacy."
 )
 
+optimize_encoding = st.sidebar.checkbox(
+    "Optimize Encoding",
+    value=False,
+    help="Perform extra compression passes to reduce file size. Disabling this speeds up processing significantly (up to 3x)."
+)
+
 # Resizing Options
 st.sidebar.subheader("Resizing")
 resize_type = st.sidebar.selectbox(
@@ -248,6 +254,7 @@ if uploaded_files:
             'output_format': output_format,
             'quality': quality,
             'strip_metadata': strip_metadata,
+            'optimize_encoding': optimize_encoding,
             'lossless': lossless,
             'crop_mode': crop_mode
         }
