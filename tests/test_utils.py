@@ -11,7 +11,7 @@ from utils import format_bytes, get_unique_filename, get_file_info
 class TestUtils(unittest.TestCase):
     
     def test_format_bytes(self):
-        self.assertEqual(format_bytes(500), "500.00 ")
+        self.assertEqual(format_bytes(500), "500.00 B")
         self.assertEqual(format_bytes(1024), "1.00 KB")
         self.assertEqual(format_bytes(1024 * 1024), "1.00 MB")
         self.assertEqual(format_bytes(1024 * 1024 * 1024), "1.00 GB")
