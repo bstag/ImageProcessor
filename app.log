@@ -64,3 +64,311 @@ Traceback (most recent call last):
 ValueError: Image dimensions (6001x100) exceed maximum allowed size (6000px)
 2026-02-08 15:08:05,638 - ImageProcessor - INFO - Processing image: Size=286 bytes, Dimensions=(100, 100)
 2026-02-08 15:08:05,639 - ImageProcessor - INFO - Successfully processed image. Output size: 826 bytes
+2026-02-09 05:46:06,403 - ImageProcessor - INFO - Processing image: Size=76 bytes, Dimensions=(10, 10)
+2026-02-09 05:46:06,405 - ImageProcessor - INFO - Successfully processed image. Output size: 76 bytes
+2026-02-09 05:46:06,408 - ImageProcessor - WARNING - Security violation: Image format 'GIF' is not allowed.
+2026-02-09 05:46:06,409 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'GIF' is not allowed.
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'GIF' is not allowed.
+2026-02-09 05:46:06,841 - ImageProcessor - WARNING - Security violation: Image format 'TIFF' is not allowed.
+2026-02-09 05:46:06,841 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'TIFF' is not allowed.
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'TIFF' is not allowed.
+2026-02-09 05:46:06,845 - ImageProcessor - WARNING - Image dimensions (6001x100) exceed maximum allowed size (6000px)
+2026-02-09 05:46:06,845 - ImageProcessor - ERROR - Error processing image: Image dimensions (6001x100) exceed maximum allowed size (6000px)
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 47, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Image dimensions (6001x100) exceed maximum allowed size (6000px)
+2026-02-09 05:46:06,908 - ImageProcessor - INFO - Processing image: Size=286 bytes, Dimensions=(100, 100)
+2026-02-09 05:46:06,910 - ImageProcessor - INFO - Successfully processed image. Output size: 826 bytes
+2026-02-09 05:46:38,552 - ImageProcessor - INFO - Processing image: Size=76 bytes, Dimensions=(10, 10)
+2026-02-09 05:46:38,554 - ImageProcessor - INFO - Successfully processed image. Output size: 76 bytes
+2026-02-09 05:46:38,558 - ImageProcessor - WARNING - Security violation: Image format 'GIF' is not allowed.
+2026-02-09 05:46:38,558 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'GIF' is not allowed.
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'GIF' is not allowed.
+2026-02-09 05:46:38,629 - ImageProcessor - WARNING - Security violation: Image format 'TIFF' is not allowed.
+2026-02-09 05:46:38,629 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'TIFF' is not allowed.
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'TIFF' is not allowed.
+2026-02-09 05:46:38,633 - ImageProcessor - WARNING - Image dimensions (6001x100) exceed maximum allowed size (6000px)
+2026-02-09 05:46:38,633 - ImageProcessor - ERROR - Error processing image: Image dimensions (6001x100) exceed maximum allowed size (6000px)
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 47, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Image dimensions (6001x100) exceed maximum allowed size (6000px)
+2026-02-09 05:46:38,681 - ImageProcessor - INFO - Processing image: Size=286 bytes, Dimensions=(100, 100)
+2026-02-09 05:46:38,682 - ImageProcessor - INFO - Successfully processed image. Output size: 826 bytes
+2026-02-09 05:47:11,072 - ImageProcessor - INFO - Processing image: Size=76 bytes, Dimensions=(10, 10)
+2026-02-09 05:47:11,074 - ImageProcessor - INFO - Successfully processed image. Output size: 76 bytes
+2026-02-09 05:47:11,077 - ImageProcessor - WARNING - Security violation: Image format 'GIF' is not allowed.
+2026-02-09 05:47:11,077 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'GIF' is not allowed.
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'GIF' is not allowed.
+2026-02-09 05:47:11,149 - ImageProcessor - WARNING - Security violation: Image format 'TIFF' is not allowed.
+2026-02-09 05:47:11,149 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'TIFF' is not allowed.
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'TIFF' is not allowed.
+2026-02-09 05:47:11,153 - ImageProcessor - WARNING - Image dimensions (6001x100) exceed maximum allowed size (6000px)
+2026-02-09 05:47:11,153 - ImageProcessor - ERROR - Error processing image: Image dimensions (6001x100) exceed maximum allowed size (6000px)
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 47, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Image dimensions (6001x100) exceed maximum allowed size (6000px)
+2026-02-09 05:47:11,200 - ImageProcessor - INFO - Processing image: Size=286 bytes, Dimensions=(100, 100)
+2026-02-09 05:47:11,201 - ImageProcessor - INFO - Successfully processed image. Output size: 826 bytes
+2026-02-09 05:47:53,554 - ImageProcessor - INFO - Processing image: Size=76 bytes, Dimensions=(10, 10)
+2026-02-09 05:47:53,556 - ImageProcessor - INFO - Successfully processed image. Output size: 76 bytes
+2026-02-09 05:47:53,559 - ImageProcessor - WARNING - Security violation: Image format 'GIF' is not allowed.
+2026-02-09 05:47:53,559 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'GIF' is not allowed.
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'GIF' is not allowed.
+2026-02-09 05:47:53,628 - ImageProcessor - WARNING - Security violation: Image format 'TIFF' is not allowed.
+2026-02-09 05:47:53,629 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'TIFF' is not allowed.
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'TIFF' is not allowed.
+2026-02-09 05:47:53,633 - ImageProcessor - WARNING - Image dimensions (6001x100) exceed maximum allowed size (6000px)
+2026-02-09 05:47:53,633 - ImageProcessor - ERROR - Error processing image: Image dimensions (6001x100) exceed maximum allowed size (6000px)
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 47, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Image dimensions (6001x100) exceed maximum allowed size (6000px)
+2026-02-09 05:47:53,681 - ImageProcessor - INFO - Processing image: Size=286 bytes, Dimensions=(100, 100)
+2026-02-09 05:47:53,682 - ImageProcessor - INFO - Successfully processed image. Output size: 826 bytes
+2026-02-09 05:48:43,493 - ImageProcessor - INFO - Processing image: Size=76 bytes, Dimensions=(10, 10)
+2026-02-09 05:48:43,495 - ImageProcessor - INFO - Successfully processed image. Output size: 76 bytes
+2026-02-09 05:48:43,498 - ImageProcessor - WARNING - Security violation: Image format 'GIF' is not allowed.
+2026-02-09 05:48:43,498 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'GIF' is not allowed.
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'GIF' is not allowed.
+2026-02-09 05:48:43,567 - ImageProcessor - WARNING - Security violation: Image format 'TIFF' is not allowed.
+2026-02-09 05:48:43,567 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'TIFF' is not allowed.
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'TIFF' is not allowed.
+2026-02-09 05:48:43,571 - ImageProcessor - WARNING - Image dimensions (6001x100) exceed maximum allowed size (6000px)
+2026-02-09 05:48:43,571 - ImageProcessor - ERROR - Error processing image: Image dimensions (6001x100) exceed maximum allowed size (6000px)
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 47, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Image dimensions (6001x100) exceed maximum allowed size (6000px)
+2026-02-09 05:48:43,617 - ImageProcessor - INFO - Processing image: Size=286 bytes, Dimensions=(100, 100)
+2026-02-09 05:48:43,618 - ImageProcessor - INFO - Successfully processed image. Output size: 826 bytes
+2026-02-09 05:50:44,500 - ImageProcessor - INFO - Processing image: Size=76 bytes, Dimensions=(10, 10)
+2026-02-09 05:50:44,503 - ImageProcessor - INFO - Successfully processed image. Output size: 76 bytes
+2026-02-09 05:50:44,508 - ImageProcessor - WARNING - Security violation: Image format 'GIF' is not allowed.
+2026-02-09 05:50:44,508 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'GIF' is not allowed.
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'GIF' is not allowed.
+2026-02-09 05:50:44,591 - ImageProcessor - WARNING - Security violation: Image format 'TIFF' is not allowed.
+2026-02-09 05:50:44,591 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'TIFF' is not allowed.
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'TIFF' is not allowed.
+2026-02-09 05:50:44,595 - ImageProcessor - WARNING - Image dimensions (6001x100) exceed maximum allowed size (6000px)
+2026-02-09 05:50:44,596 - ImageProcessor - ERROR - Error processing image: Image dimensions (6001x100) exceed maximum allowed size (6000px)
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 47, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Image dimensions (6001x100) exceed maximum allowed size (6000px)
+2026-02-09 05:50:44,645 - ImageProcessor - INFO - Processing image: Size=286 bytes, Dimensions=(100, 100)
+2026-02-09 05:50:44,646 - ImageProcessor - INFO - Successfully processed image. Output size: 826 bytes
+2026-02-09 05:51:25,501 - ImageProcessor - INFO - Processing image: Size=76 bytes, Dimensions=(10, 10)
+2026-02-09 05:51:25,504 - ImageProcessor - INFO - Successfully processed image. Output size: 76 bytes
+2026-02-09 05:51:25,507 - ImageProcessor - WARNING - Security violation: Image format 'GIF' is not allowed.
+2026-02-09 05:51:25,507 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'GIF' is not allowed.
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'GIF' is not allowed.
+2026-02-09 05:51:25,588 - ImageProcessor - WARNING - Security violation: Image format 'TIFF' is not allowed.
+2026-02-09 05:51:25,589 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'TIFF' is not allowed.
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'TIFF' is not allowed.
+2026-02-09 05:51:25,593 - ImageProcessor - WARNING - Image dimensions (6001x100) exceed maximum allowed size (6000px)
+2026-02-09 05:51:25,593 - ImageProcessor - ERROR - Error processing image: Image dimensions (6001x100) exceed maximum allowed size (6000px)
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 47, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Image dimensions (6001x100) exceed maximum allowed size (6000px)
+2026-02-09 05:51:25,643 - ImageProcessor - INFO - Processing image: Size=286 bytes, Dimensions=(100, 100)
+2026-02-09 05:51:25,644 - ImageProcessor - INFO - Successfully processed image. Output size: 826 bytes
+2026-02-09 05:55:54,478 - ImageProcessor - INFO - Processing image: Size=76 bytes, Dimensions=(10, 10)
+2026-02-09 05:55:54,480 - ImageProcessor - INFO - Successfully processed image. Output size: 76 bytes
+2026-02-09 05:55:54,484 - ImageProcessor - WARNING - Security violation: Image format 'GIF' is not allowed.
+2026-02-09 05:55:54,484 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'GIF' is not allowed.
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'GIF' is not allowed.
+2026-02-09 05:55:54,573 - ImageProcessor - WARNING - Security violation: Image format 'TIFF' is not allowed.
+2026-02-09 05:55:54,573 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'TIFF' is not allowed.
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'TIFF' is not allowed.
+2026-02-09 05:55:54,577 - ImageProcessor - WARNING - Image dimensions (6001x100) exceed maximum allowed size (6000px)
+2026-02-09 05:55:54,578 - ImageProcessor - ERROR - Error processing image: Image dimensions (6001x100) exceed maximum allowed size (6000px)
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 47, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Image dimensions (6001x100) exceed maximum allowed size (6000px)
+2026-02-09 05:55:54,629 - ImageProcessor - INFO - Processing image: Size=286 bytes, Dimensions=(100, 100)
+2026-02-09 05:55:54,631 - ImageProcessor - INFO - Successfully processed image. Output size: 826 bytes
+2026-02-09 05:56:42,704 - ImageProcessor - INFO - Processing image: Size=76 bytes, Dimensions=(10, 10)
+2026-02-09 05:56:42,707 - ImageProcessor - INFO - Successfully processed image. Output size: 76 bytes
+2026-02-09 05:56:42,710 - ImageProcessor - WARNING - Security violation: Image format 'GIF' is not allowed.
+2026-02-09 05:56:42,710 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'GIF' is not allowed.
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'GIF' is not allowed.
+2026-02-09 05:56:42,785 - ImageProcessor - WARNING - Security violation: Image format 'TIFF' is not allowed.
+2026-02-09 05:56:42,786 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'TIFF' is not allowed.
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'TIFF' is not allowed.
+2026-02-09 05:56:42,790 - ImageProcessor - WARNING - Image dimensions (6001x100) exceed maximum allowed size (6000px)
+2026-02-09 05:56:42,790 - ImageProcessor - ERROR - Error processing image: Image dimensions (6001x100) exceed maximum allowed size (6000px)
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 47, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Image dimensions (6001x100) exceed maximum allowed size (6000px)
+2026-02-09 05:56:42,841 - ImageProcessor - INFO - Processing image: Size=286 bytes, Dimensions=(100, 100)
+2026-02-09 05:56:42,842 - ImageProcessor - INFO - Successfully processed image. Output size: 826 bytes
+2026-02-09 05:59:18,596 - ImageProcessor - INFO - Processing image: Size=76 bytes, Dimensions=(10, 10)
+2026-02-09 05:59:18,598 - ImageProcessor - INFO - Successfully processed image. Output size: 76 bytes
+2026-02-09 05:59:18,601 - ImageProcessor - WARNING - Security violation: Image format 'GIF' is not allowed.
+2026-02-09 05:59:18,601 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'GIF' is not allowed.
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'GIF' is not allowed.
+2026-02-09 05:59:18,677 - ImageProcessor - WARNING - Security violation: Image format 'TIFF' is not allowed.
+2026-02-09 05:59:18,677 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'TIFF' is not allowed.
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'TIFF' is not allowed.
+2026-02-09 05:59:18,681 - ImageProcessor - WARNING - Image dimensions (6001x100) exceed maximum allowed size (6000px)
+2026-02-09 05:59:18,681 - ImageProcessor - ERROR - Error processing image: Image dimensions (6001x100) exceed maximum allowed size (6000px)
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 47, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Image dimensions (6001x100) exceed maximum allowed size (6000px)
+2026-02-09 05:59:18,728 - ImageProcessor - INFO - Processing image: Size=286 bytes, Dimensions=(100, 100)
+2026-02-09 05:59:18,729 - ImageProcessor - INFO - Successfully processed image. Output size: 826 bytes
+2026-02-09 06:00:49,530 - ImageProcessor - INFO - Processing image: Size=76 bytes, Dimensions=(10, 10)
+2026-02-09 06:00:49,532 - ImageProcessor - INFO - Successfully processed image. Output size: 76 bytes
+2026-02-09 06:00:49,536 - ImageProcessor - WARNING - Security violation: Image format 'GIF' is not allowed.
+2026-02-09 06:00:49,537 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'GIF' is not allowed.
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'GIF' is not allowed.
+2026-02-09 06:00:49,610 - ImageProcessor - WARNING - Security violation: Image format 'TIFF' is not allowed.
+2026-02-09 06:00:49,610 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'TIFF' is not allowed.
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'TIFF' is not allowed.
+2026-02-09 06:00:49,614 - ImageProcessor - WARNING - Image dimensions (6001x100) exceed maximum allowed size (6000px)
+2026-02-09 06:00:49,614 - ImageProcessor - ERROR - Error processing image: Image dimensions (6001x100) exceed maximum allowed size (6000px)
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 47, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Image dimensions (6001x100) exceed maximum allowed size (6000px)
+2026-02-09 06:00:49,665 - ImageProcessor - INFO - Processing image: Size=286 bytes, Dimensions=(100, 100)
+2026-02-09 06:00:49,666 - ImageProcessor - INFO - Successfully processed image. Output size: 826 bytes
+2026-02-09 06:01:42,366 - ImageProcessor - INFO - Processing image: Size=76 bytes, Dimensions=(10, 10)
+2026-02-09 06:01:42,369 - ImageProcessor - INFO - Successfully processed image. Output size: 76 bytes
+2026-02-09 06:01:42,374 - ImageProcessor - WARNING - Security violation: Image format 'GIF' is not allowed.
+2026-02-09 06:01:42,374 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'GIF' is not allowed.
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'GIF' is not allowed.
+2026-02-09 06:01:42,467 - ImageProcessor - WARNING - Security violation: Image format 'TIFF' is not allowed.
+2026-02-09 06:01:42,467 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'TIFF' is not allowed.
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'TIFF' is not allowed.
+2026-02-09 06:01:42,471 - ImageProcessor - WARNING - Image dimensions (6001x100) exceed maximum allowed size (6000px)
+2026-02-09 06:01:42,471 - ImageProcessor - ERROR - Error processing image: Image dimensions (6001x100) exceed maximum allowed size (6000px)
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 47, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Image dimensions (6001x100) exceed maximum allowed size (6000px)
+2026-02-09 06:01:42,516 - ImageProcessor - INFO - Processing image: Size=286 bytes, Dimensions=(100, 100)
+2026-02-09 06:01:42,517 - ImageProcessor - INFO - Successfully processed image. Output size: 826 bytes
+2026-02-09 06:02:41,334 - ImageProcessor - INFO - Processing image: Size=76 bytes, Dimensions=(10, 10)
+2026-02-09 06:02:41,336 - ImageProcessor - INFO - Successfully processed image. Output size: 76 bytes
+2026-02-09 06:02:41,339 - ImageProcessor - WARNING - Security violation: Image format 'GIF' is not allowed.
+2026-02-09 06:02:41,339 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'GIF' is not allowed.
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'GIF' is not allowed.
+2026-02-09 06:02:41,411 - ImageProcessor - WARNING - Security violation: Image format 'TIFF' is not allowed.
+2026-02-09 06:02:41,411 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'TIFF' is not allowed.
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'TIFF' is not allowed.
+2026-02-09 06:02:41,416 - ImageProcessor - WARNING - Image dimensions (6001x100) exceed maximum allowed size (6000px)
+2026-02-09 06:02:41,416 - ImageProcessor - ERROR - Error processing image: Image dimensions (6001x100) exceed maximum allowed size (6000px)
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 47, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Image dimensions (6001x100) exceed maximum allowed size (6000px)
+2026-02-09 06:02:41,464 - ImageProcessor - INFO - Processing image: Size=286 bytes, Dimensions=(100, 100)
+2026-02-09 06:02:41,465 - ImageProcessor - INFO - Successfully processed image. Output size: 826 bytes
+2026-02-09 06:03:42,457 - ImageProcessor - INFO - Processing image: Size=76 bytes, Dimensions=(10, 10)
+2026-02-09 06:03:42,459 - ImageProcessor - INFO - Successfully processed image. Output size: 76 bytes
+2026-02-09 06:03:42,462 - ImageProcessor - WARNING - Security violation: Image format 'GIF' is not allowed.
+2026-02-09 06:03:42,462 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'GIF' is not allowed.
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'GIF' is not allowed.
+2026-02-09 06:03:42,546 - ImageProcessor - WARNING - Security violation: Image format 'TIFF' is not allowed.
+2026-02-09 06:03:42,546 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'TIFF' is not allowed.
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'TIFF' is not allowed.
+2026-02-09 06:03:42,550 - ImageProcessor - WARNING - Image dimensions (6001x100) exceed maximum allowed size (6000px)
+2026-02-09 06:03:42,551 - ImageProcessor - ERROR - Error processing image: Image dimensions (6001x100) exceed maximum allowed size (6000px)
+Traceback (most recent call last):
+  File "C:\Source\ImageProcessor\src\tasks.py", line 47, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Image dimensions (6001x100) exceed maximum allowed size (6000px)
+2026-02-09 06:03:42,604 - ImageProcessor - INFO - Processing image: Size=286 bytes, Dimensions=(100, 100)
+2026-02-09 06:03:42,605 - ImageProcessor - INFO - Successfully processed image. Output size: 826 bytes
