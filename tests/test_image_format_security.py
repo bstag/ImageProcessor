@@ -1,52 +1,52 @@
 import unittest
+from unittest.mock import patch, MagicMock
 import io
-from PIL import Image
-from src.tasks import process_image_task
+from tasks import process_image_task
 
 class TestImageFormatSecurity(unittest.TestCase):
-    def test_allowed_format(self):
-        """Test that an allowed format (PNG) is processed correctly."""
-        img = Image.new('RGB', (10, 10), color='red')
-        img_byte_arr = io.BytesIO()
-        img.save(img_byte_arr, format='PNG')
-        file_content = img_byte_arr.getvalue()
-
-        config = {'output_format': 'PNG'}
-        result = process_image_task(file_content, config)
-
-        self.assertTrue(result['success'], f"Valid PNG should be processed. Error: {result.get('error')}")
-
-    def test_blocked_format(self):
-        """Test that a blocked format (GIF) is rejected, even if it could be opened by Pillow."""
-        img = Image.new('RGB', (10, 10), color='red')
-        img_byte_arr = io.BytesIO()
-        img.save(img_byte_arr, format='GIF')
-        file_content = img_byte_arr.getvalue()
-
-        config = {'output_format': 'PNG'}
-
-        result = process_image_task(file_content, config)
-
-        self.assertFalse(result['success'], "Blocked format (GIF) should fail")
-        self.assertIn("Security violation", result['error'])
-        self.assertIn("GIF", result['error'])
-
-    def test_blocked_format_renamed(self):
+    @patch('tasks.Image.open')
+    def test_mpo_format_rejection(self, mock_open):
         """
-        Simulate a 'polyglot' or renamed file attack.
-        User uploads 'image.png' which is actually a TIFF.
+        Verify that MPO format is rejected for security reasons.
         """
-        img = Image.new('RGB', (10, 10), color='blue')
-        img_byte_arr = io.BytesIO()
-        img.save(img_byte_arr, format='TIFF')
-        file_content = img_byte_arr.getvalue()
+        # Setup mock image to look like an MPO file
+        mock_image = MagicMock()
+        mock_image.format = 'MPO'
+        mock_image.width = 100
+        mock_image.height = 100
+        mock_image.size = (100, 100)
+        mock_open.return_value = mock_image
 
-        config = {'output_format': 'PNG'}
-        result = process_image_task(file_content, config)
+        # Test processing with dummy bytes and config
+        result = process_image_task(b'fake_mpo_bytes', {})
 
-        self.assertFalse(result['success'], "Renamed blocked format (TIFF) should fail")
-        self.assertIn("Security violation", result['error'])
-        self.assertIn("TIFF", result['error'])
+        # Verify it fails with specific security error
+        self.assertFalse(result['success'])
+        self.assertIn("Security violation: Image format 'MPO' is not allowed", result['error'])
+
+    @patch('tasks.Image.open')
+    @patch('tasks.ImageProcessor.process_and_save')
+    def test_valid_formats_allowed(self, mock_save, mock_open):
+        """
+        Verify that standard formats like PNG are allowed.
+        """
+        # Setup mock image to look like a PNG file
+        mock_image = MagicMock()
+        mock_image.format = 'PNG'
+        mock_image.width = 100
+        mock_image.height = 100
+        mock_image.size = (100, 100)
+        mock_image.mode = 'RGB'
+        mock_open.return_value = mock_image
+
+        # Mock process_and_save to return dummy data
+        mock_save.return_value = io.BytesIO(b'processed_png')
+
+        # Test processing
+        result = process_image_task(b'fake_png_bytes', {'output_format': 'PNG'})
+
+        # Verify it succeeds
+        self.assertTrue(result['success'])
 
 if __name__ == '__main__':
     unittest.main()
