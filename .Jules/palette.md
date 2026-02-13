@@ -7,3 +7,7 @@
 ## 2024-05-24 - Onboarding via Empty States
 **Learning:** In data-centric apps like this one, the "Empty State" (initial view) is often neglected, showing just a blank screen or a tiny prompt. This is a prime real estate to educate users about features they might not discover otherwise (like Vectorization or Privacy stripping).
 **Action:** Always use the empty state to sell the "Why" and "What" of the application, not just the "How".
+
+## 2024-05-25 - Error Prevention in Uploaders
+**Learning:** While tooltips (`help`) are great for context, critical constraints (like file limits or size caps) hidden inside them often lead to user frustration when they hit an error *after* selecting files. Showing these limits explicitly via `st.caption` or labels *before* the action is taken shifts the UX from "Error Recovery" to "Error Prevention".
+**Action:** Always display hard constraints (limits, formats) visibly near the input component, not just in tooltips.
