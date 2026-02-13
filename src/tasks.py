@@ -33,7 +33,7 @@ def process_image_task(file_content: bytes, config: Dict[str, Any]) -> Dict[str,
         # Security: Validate Image Format
         # Ensure the detected format is in our allowed list to prevent usage of vulnerable/obscure decoders.
         # This protects against attacks where a malicious file (e.g. SGI, PCX) is uploaded with a safe extension (.png).
-        ALLOWED_FORMATS = {'PNG', 'JPEG', 'MPO', 'BMP', 'WEBP', 'HEIC', 'HEIF', 'AVIF'}
+        ALLOWED_FORMATS = {'PNG', 'JPEG', 'BMP', 'WEBP', 'HEIC', 'HEIF', 'AVIF'}
         if image.format not in ALLOWED_FORMATS:
              error_msg = f"Security violation: Image format '{image.format}' is not allowed."
              logger.warning(error_msg)
