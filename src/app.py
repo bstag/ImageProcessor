@@ -14,12 +14,17 @@ def main():
 
     st.title("Image Processing & Optimization")
 
+    if 'show_clear_toast' in st.session_state and st.session_state.show_clear_toast:
+        st.toast("Results cleared!", icon="🗑️")
+        st.session_state.show_clear_toast = False
+
     uploaded_files = st.file_uploader(
         "Upload Images",
         type=['png', 'jpg', 'jpeg', 'bmp', 'webp', 'heic', 'heif', 'avif'],
         accept_multiple_files=True,
         help="Supported: PNG, JPG, WEBP, HEIC, AVIF. Limit: 50 files, 200MB total."
     )
+    st.caption("Supported formats: PNG, JPG, WEBP, HEIC, AVIF • Limit: 50 files, 200MB")
 
     # Sidebar Configuration
     st.sidebar.header("Settings")
@@ -216,6 +221,9 @@ def main():
     if 'processed_images' not in st.session_state:
         st.session_state.processed_images = None
 
+    if 'show_clear_toast' not in st.session_state:
+        st.session_state.show_clear_toast = False
+
     if 'zip_data' not in st.session_state:
         st.session_state.zip_data = None
     if 'zip_filename' not in st.session_state:
@@ -386,6 +394,7 @@ def main():
             st.session_state.processed_images = None
             st.session_state.zip_data = None
             st.session_state.zip_filename = None
+            st.session_state.show_clear_toast = True
             st.rerun()
 
         # Recalculate totals for display
