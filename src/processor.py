@@ -190,7 +190,8 @@ class ImageProcessor:
             intercept = mean * brightness * (1 - contrast)
 
             def lut_func(x):
-                val = int(x * slope + intercept)
+                # Use rounding instead of truncation to better match Pillow's internal math.
+                val = round(x * slope + intercept)
                 return max(0, min(255, val))
 
             lut = [lut_func(i) for i in range(256)]
