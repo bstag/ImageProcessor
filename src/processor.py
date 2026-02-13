@@ -203,7 +203,7 @@ class ImageProcessor:
                 full_lut = lut + lut + lut + identity
                 image = image.point(full_lut)
             elif image.mode == 'RGB':
-                 # LUT must have 256 * 3 entries
+                # LUT must have 256 * 3 entries
                 full_lut = lut * 3
                 image = image.point(full_lut)
             elif image.mode == 'L':
