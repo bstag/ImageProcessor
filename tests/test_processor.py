@@ -178,5 +178,25 @@ class TestImageProcessor(unittest.TestCase):
             ImageProcessor.add_watermark(img, long_text)
         self.assertIn("Watermark text exceeds maximum allowed length", str(cm.exception))
 
+    def test_combined_enhancements_logic(self):
+        # Create a gray image
+        img = Image.new('RGB', (100, 100), color=(100, 100, 100))
+
+        # Apply combined
+        combined = ImageProcessor.apply_enhancements(img, brightness=1.2, contrast=1.3)
+
+        # Apply sequential manually
+        from PIL import ImageEnhance
+        seq = ImageEnhance.Brightness(img).enhance(1.2)
+        seq = ImageEnhance.Contrast(seq).enhance(1.3)
+
+        # Check if pixels are close (allow small rounding differences)
+        c_pixel = combined.getpixel((50, 50))
+        s_pixel = seq.getpixel((50, 50))
+
+        # Differences should be very small (<= 1) due to integer arithmetic order
+        diff = abs(c_pixel[0] - s_pixel[0])
+        self.assertLessEqual(diff, 1)
+
 if __name__ == '__main__':
     unittest.main()
