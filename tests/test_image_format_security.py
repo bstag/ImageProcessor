@@ -1,6 +1,7 @@
 import unittest
 import io
 from PIL import Image
+from unittest.mock import patch, MagicMock
 from src.tasks import process_image_task
 
 class TestImageFormatSecurity(unittest.TestCase):
@@ -47,6 +48,34 @@ class TestImageFormatSecurity(unittest.TestCase):
         self.assertFalse(result['success'], "Renamed blocked format (TIFF) should fail")
         self.assertIn("Security violation", result['error'])
         self.assertIn("TIFF", result['error'])
+
+    @patch('src.tasks.Image.open')
+    def test_blocked_format_mpo(self, mock_open):
+        """
+        Test that MPO format is rejected.
+        We mock Image.open because Pillow might not support creating/saving MPO files easily.
+        """
+        # Create a mock image object
+        mock_img = MagicMock()
+        mock_img.format = 'MPO'
+        mock_img.size = (100, 100)
+        mock_img.width = 100
+        mock_img.height = 100
+
+        # Configure mock_open to return our mock image
+        mock_open.return_value = mock_img
+        # Support context manager if the code changes to use 'with Image.open()'
+        mock_img.__enter__.return_value = mock_img
+
+        # Pass dummy content; Image.open is mocked so it won't read it
+        file_content = b'dummy content'
+        config = {'output_format': 'PNG'}
+
+        result = process_image_task(file_content, config)
+
+        self.assertFalse(result['success'], "MPO format should be blocked")
+        self.assertIn("Security violation", result['error'])
+        self.assertIn("MPO", result['error'])
 
 if __name__ == '__main__':
     unittest.main()
