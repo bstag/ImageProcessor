@@ -195,7 +195,7 @@ class ImageProcessor:
         Applies geometric transformations and filters.
         """
         if grayscale:
-            image = image.convert('L').convert('RGB') # Convert back to RGB to maintain compatibility
+            image = image.convert('L') # Bolt Optimization: Return 'L' mode directly to save memory (1/3 size) and speed up subsequent ops
 
         if rotate != 0:
             # Expand=True ensures the image is not cropped if rotated by non-90 degrees,
