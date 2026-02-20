@@ -16,6 +16,10 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(format_bytes(1024 * 1024), "1.00 MB")
         self.assertEqual(format_bytes(1024 * 1024 * 1024), "1.00 GB")
         self.assertEqual(format_bytes(1536), "1.50 KB")
+        # Test negative values
+        self.assertEqual(format_bytes(-500), "-500.00 B")
+        self.assertEqual(format_bytes(-1024), "-1.00 KB")
+        self.assertEqual(format_bytes(-1536), "-1.50 KB")
 
     def test_get_unique_filename(self):
         output_dir = "output"

@@ -404,9 +404,12 @@ def main():
         # Summary Metrics
         col1, col2, col3 = st.columns(3)
         col1.metric("Total Original Size", format_bytes(total_original_size))
-        col2.metric("Total Processed Size", format_bytes(total_processed_size))
+
+        diff = total_processed_size - total_original_size
+        col2.metric("Total Processed Size", format_bytes(total_processed_size), delta=format_bytes(diff), delta_color="inverse")
+
         savings = (1 - total_processed_size / total_original_size) * 100 if total_original_size > 0 else 0
-        col3.metric("Space Savings", f"{savings:.1f}%")
+        col3.metric("Space Savings", f"{savings:.1f}%", delta=f"{savings:.1f}%")
         
         if st.session_state.zip_data:
             st.download_button(
