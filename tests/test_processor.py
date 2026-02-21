@@ -66,11 +66,14 @@ class TestImageProcessor(unittest.TestCase):
 
     def test_transforms_grayscale(self):
         gray = ImageProcessor.apply_transforms(self.img, grayscale=True)
-        # We convert back to RGB in the function, but visually it should be gray
-        # Check if R=G=B (grayscale property)
+        # Bolt Optimization: grayscale=True now returns 'L' mode directly
+        self.assertEqual(gray.mode, 'L')
+
+        # Verify value matches luminance of red (approx 76)
         pixel = gray.getpixel((0,0))
-        self.assertEqual(pixel[0], pixel[1])
-        self.assertEqual(pixel[1], pixel[2])
+        self.assertIsInstance(pixel, int)
+        # 0.299 * 255 = 76.245
+        self.assertTrue(70 <= pixel <= 80)
 
     def test_save_rgba_to_jpeg(self):
         # Create RGBA image
