@@ -1,11 +1,15 @@
 from processor import ImageProcessor
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 import io
 from typing import Dict, Any, Union
 from logging_config import setup_logging
 
 # Setup logger
 logger = setup_logging()
+
+class SecurityError(ValueError):
+    """Custom exception for security violations."""
+    pass
 
 def process_image_task(file_content: bytes, config: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -37,14 +41,14 @@ def process_image_task(file_content: bytes, config: Dict[str, Any]) -> Dict[str,
         if image.format not in ALLOWED_FORMATS:
              error_msg = f"Security violation: Image format '{image.format}' is not allowed."
              logger.warning(error_msg)
-             raise ValueError(error_msg)
+             raise SecurityError(error_msg)
 
         # Security: Check dimensions immediately to prevent DoS (Pixel Flood)
         # Note: image.size is available without loading the full raster data
         if image.width > ImageProcessor.MAX_IMAGE_DIMENSION or image.height > ImageProcessor.MAX_IMAGE_DIMENSION:
             error_msg = f"Image dimensions ({image.width}x{image.height}) exceed maximum allowed size ({ImageProcessor.MAX_IMAGE_DIMENSION}px)"
             logger.warning(error_msg)
-            raise ValueError(error_msg)
+            raise SecurityError(error_msg)
 
         original_size = len(file_content)  # Size in bytes of the original uploaded file content
         # App uses uploaded_file.size for original_size (bytes); here we derive it from the raw file bytes.
@@ -187,9 +191,24 @@ def process_image_task(file_content: bytes, config: Dict[str, Any]) -> Dict[str,
             "dominant_colors": dominant_colors,
             "histogram_data": histogram_data
         }
-    except Exception as e:
-        logger.error(f"Error processing image: {str(e)}", exc_info=True)
+    except SecurityError as e:
+        logger.warning(f"Security error processing image: {str(e)}")
         return {
             "success": False,
             "error": str(e)
+        }
+    except UnidentifiedImageError as e:
+        logger.warning(f"Unidentified image error: {str(e)}")
+        return {
+            "success": False,
+            "error": "Invalid or corrupt image file."
+        }
+    except Exception as e:
+        # Catch-all for unexpected errors to prevent information leakage
+        # Log the full details for debugging
+        logger.error(f"Error processing image: {str(e)}", exc_info=True)
+        # Return a generic message to the user
+        return {
+            "success": False,
+            "error": "An internal error occurred during processing."
         }
