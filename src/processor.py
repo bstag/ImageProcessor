@@ -107,11 +107,11 @@ class ImageProcessor:
         original_mode = image.mode
         if original_mode != 'RGBA':
             image = image.convert('RGBA')
+        else:
+            # Bolt Optimization: If we are modifying in place (via alpha_composite or paste), we should technically copy first
+            # to remain consistent with pure function behavior if existing code relies on immutability.
+            image = image.copy()
             
-        # Create a transparent overlay
-        txt_layer = Image.new('RGBA', image.size, (255, 255, 255, 0))
-        draw = ImageDraw.Draw(txt_layer)
-        
         # Load font (try to load default with size, fallback to default)
         try:
             font = ImageFont.load_default(size=font_size)
@@ -120,30 +120,40 @@ class ImageProcessor:
             font = ImageFont.load_default()
 
         # Calculate text size using getbbox (left, top, right, bottom)
-        bbox = draw.textbbox((0, 0), text, font=font)
+        # Use a dummy draw context to measure text
+        dummy_draw = ImageDraw.Draw(Image.new('RGBA', (1, 1)))
+        bbox = dummy_draw.textbbox((0, 0), text, font=font)
         text_width = bbox[2] - bbox[0]
         text_height = bbox[3] - bbox[1]
+
+        # Bolt Optimization: Create a small image just for the text instead of a full-size transparent layer.
+        # This saves processing millions of pixels for large images.
+        txt_layer = Image.new('RGBA', (text_width, text_height), (255, 255, 255, 0))
+        draw = ImageDraw.Draw(txt_layer)
         
         # Position: Bottom right with padding
         padding = 20
         x = image.width - text_width - padding
         y = image.height - text_height - padding
         
-        # Draw text
+        # Draw text onto the small layer
         r, g, b = color
-        draw.text((x, y), text, font=font, fill=(r, g, b, opacity))
+        # Offset by bbox origin to ensure all text is drawn within the layer
+        draw.text((-bbox[0], -bbox[1]), text, font=font, fill=(r, g, b, opacity))
         
-        # Composite
-        watermarked = Image.alpha_composite(image, txt_layer)
+        # Composite the small text layer onto the main image
+        # alpha_composite requires same size, so we use paste with the text layer itself as mask (it has alpha)
+        # Wait, paste with mask uses mask alpha. txt_layer IS the image and the mask.
+        image.alpha_composite(txt_layer, dest=(x, y))
         
         # Convert back to original mode if it wasn't RGBA (unless it was P or 1, then maybe RGB is safer)
         if original_mode != 'RGBA':
             if original_mode in ['P', '1']:
-                watermarked = watermarked.convert('RGB')
+                image = image.convert('RGB')
             else:
-                watermarked = watermarked.convert(original_mode)
+                image = image.convert(original_mode)
                 
-        return watermarked
+        return image
 
     @staticmethod
     def apply_filter(image: Image.Image, filter_name: str) -> Image.Image:
