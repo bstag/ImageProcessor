@@ -73,6 +73,7 @@ def main():
         0,
         100,
         80,
+        format="%d%%",
         disabled=quality_disabled,
         help=quality_help
     )
@@ -132,6 +133,7 @@ def main():
             1,
             200,
             100,
+            format="%d%%",
             help="Scale the image by this percentage."
         )
     elif resize_type == "Fixed Dimensions":
@@ -151,14 +153,14 @@ def main():
     st.sidebar.subheader("Editor")
 
     with st.sidebar.expander("Enhancements"):
-        brightness = st.slider("Brightness", 0.0, 2.0, 1.0, 0.1, help="Adjust the brightness of the image.")
-        contrast = st.slider("Contrast", 0.0, 2.0, 1.0, 0.1, help="Adjust the contrast of the image.")
-        saturation = st.slider("Saturation", 0.0, 2.0, 1.0, 0.1, help="Adjust the color intensity.")
-        sharpness = st.slider("Sharpness", 0.0, 3.0, 1.0, 0.1, help="Adjust the sharpness of edges.")
+        brightness = st.slider("Brightness", 0.0, 2.0, 1.0, 0.1, format="%.1fx", help="Adjust the brightness of the image.")
+        contrast = st.slider("Contrast", 0.0, 2.0, 1.0, 0.1, format="%.1fx", help="Adjust the contrast of the image.")
+        saturation = st.slider("Saturation", 0.0, 2.0, 1.0, 0.1, format="%.1fx", help="Adjust the color intensity.")
+        sharpness = st.slider("Sharpness", 0.0, 3.0, 1.0, 0.1, format="%.1fx", help="Adjust the sharpness of edges.")
         filter_type = st.selectbox("Filter", ["None", "Blur", "Contour", "Detail", "Edge Enhance", "Emboss", "Sharpen", "Smooth"], index=0, help="Apply an image filter.")
 
     with st.sidebar.expander("Transforms"):
-        rotate = st.selectbox("Rotate", [0, 90, 180, 270], help="Rotate the image clockwise.")
+        rotate = st.selectbox("Rotate", [0, 90, 180, 270], format_func=lambda x: f"{x}°", help="Rotate the image clockwise.")
         col1, col2 = st.columns(2)
         with col1:
             flip_h = st.checkbox("Flip Horizontal", help="Mirror the image horizontally.")
@@ -195,7 +197,8 @@ def main():
     with st.sidebar.expander("Watermark"):
         watermark_text = st.text_input("Watermark Text", max_chars=100, help="Text to overlay on the image.")
         if watermark_text:
-            wm_opacity = st.slider("Opacity", 0, 255, 128, help="Transparency of the watermark.")
+            wm_opacity_percent = st.slider("Opacity", 0, 100, 50, format="%d%%", help="Transparency of the watermark.")
+            wm_opacity = int((wm_opacity_percent / 100) * 255)
             wm_size = st.number_input("Font Size", min_value=10, max_value=200, value=30, help="Size of the watermark text.")
             wm_color = st.color_picker("Text Color", "#FFFFFF", help="Color of the watermark text.")
         else:
