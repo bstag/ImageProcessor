@@ -1,0 +1,28 @@
+2026-02-27 14:35:33,777 - ImageProcessor - INFO - Processing image: Size=75 bytes, Dimensions=(10, 10)
+2026-02-27 14:35:33,777 - ImageProcessor - INFO - Successfully processed image. Output size: 75 bytes
+2026-02-27 14:35:33,778 - ImageProcessor - WARNING - Security violation: Image format 'GIF' is not allowed.
+2026-02-27 14:35:33,778 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'GIF' is not allowed.
+Traceback (most recent call last):
+  File "/app/src/tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'GIF' is not allowed.
+2026-02-27 14:35:33,780 - ImageProcessor - WARNING - Security violation: Image format 'MPO' is not allowed.
+2026-02-27 14:35:33,780 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'MPO' is not allowed.
+Traceback (most recent call last):
+  File "/app/src/tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'MPO' is not allowed.
+2026-02-27 14:35:33,830 - ImageProcessor - WARNING - Security violation: Image format 'TIFF' is not allowed.
+2026-02-27 14:35:33,831 - ImageProcessor - ERROR - Error processing image: Security violation: Image format 'TIFF' is not allowed.
+Traceback (most recent call last):
+  File "/app/src/tasks.py", line 40, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Security violation: Image format 'TIFF' is not allowed.
+2026-02-27 14:35:33,832 - ImageProcessor - WARNING - Image dimensions (6001x100) exceed maximum allowed size (6000px)
+2026-02-27 14:35:33,832 - ImageProcessor - ERROR - Error processing image: Image dimensions (6001x100) exceed maximum allowed size (6000px)
+Traceback (most recent call last):
+  File "/app/src/tasks.py", line 47, in process_image_task
+    raise ValueError(error_msg)
+ValueError: Image dimensions (6001x100) exceed maximum allowed size (6000px)
+2026-02-27 14:35:33,846 - ImageProcessor - INFO - Processing image: Size=287 bytes, Dimensions=(100, 100)
+2026-02-27 14:35:33,848 - ImageProcessor - INFO - Successfully processed image. Output size: 826 bytes
