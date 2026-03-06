@@ -18,7 +18,9 @@ def format_bytes(size: float) -> str:
     return f"{abs_size:.2f} {power_labels[n]}"
 
 def get_unique_filename(original_filename: str, output_dir: str, suffix: str = "processed") -> str:
-    base, ext = os.path.splitext(original_filename)
+    # Sanitize the original filename to prevent path traversal
+    safe_filename = os.path.basename(original_filename.replace("\\", "/"))
+    base, ext = os.path.splitext(safe_filename)
     unique_id = str(uuid.uuid4())[:8]
     new_filename = f"{base}_{suffix}_{unique_id}{ext}"
     return os.path.join(output_dir, new_filename)
