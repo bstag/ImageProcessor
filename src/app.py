@@ -47,13 +47,17 @@ def main():
         help="Select the file format for the processed images. WebP and AVIF offer better compression. SVG converts to vector."
     )
 
-    lossless = False
-    if output_format in ["WEBP", "AVIF"]:
-        lossless = st.sidebar.checkbox(
-            "Lossless Compression",
-            value=False,
-            help="Retain perfect quality at the cost of larger file size. Available for WebP and AVIF."
-        )
+    lossless_disabled = output_format not in ["WEBP", "AVIF"]
+    lossless_help = "Retain perfect quality at the cost of larger file size. Available for WebP and AVIF."
+    if lossless_disabled:
+        lossless_help = f"Lossless compression is not available for {output_format} format. Select WebP or AVIF."
+
+    lossless = st.sidebar.checkbox(
+        "Lossless Compression",
+        value=False,
+        disabled=lossless_disabled,
+        help=lossless_help
+    )
 
     quality_disabled = False
     quality_help = "Adjust compression level. Lower values result in smaller files but lower quality."
@@ -194,14 +198,14 @@ def main():
 
     with st.sidebar.expander("Watermark"):
         watermark_text = st.text_input("Watermark Text", max_chars=100, help="Text to overlay on the image.")
-        if watermark_text:
-            wm_opacity = st.slider("Opacity", 0, 255, 128, help="Transparency of the watermark.")
-            wm_size = st.number_input("Font Size", min_value=10, max_value=200, value=30, help="Size of the watermark text.")
-            wm_color = st.color_picker("Text Color", "#FFFFFF", help="Color of the watermark text.")
-        else:
-            wm_opacity = 128
-            wm_size = 30
-            wm_color = "#FFFFFF"
+        wm_disabled = not watermark_text
+        wm_help = "Transparency of the watermark." if not wm_disabled else "Enter watermark text to enable opacity adjustment."
+        wm_size_help = "Size of the watermark text." if not wm_disabled else "Enter watermark text to enable font size adjustment."
+        wm_color_help = "Color of the watermark text." if not wm_disabled else "Enter watermark text to enable color selection."
+
+        wm_opacity = st.slider("Opacity", 0, 255, 128, disabled=wm_disabled, help=wm_help)
+        wm_size = st.number_input("Font Size", min_value=10, max_value=200, value=30, disabled=wm_disabled, help=wm_size_help)
+        wm_color = st.color_picker("Text Color", "#FFFFFF", disabled=wm_disabled, help=wm_color_help)
 
     with st.sidebar.expander("Analysis"):
         extract_colors = st.checkbox("Extract Dominant Colors", help="Find and display the top 5 colors in the image.")
@@ -211,12 +215,16 @@ def main():
         pixel_size = st.slider("Pixelate (Retro Effect)", 1, 100, 1, help="Increase to make the image look like 8-bit pixel art.")
 
     with st.sidebar.expander("Transparency"):
-        replace_color = st.checkbox("Replace Color with Transparency", help="Make a specific color transparent.")
-        if replace_color:
-            trans_color = st.color_picker("Color to Replace", "#FFFFFF", help="Choose the color to make transparent.")
-            trans_tolerance = st.slider("Tolerance", 0, 100, 10, help="How much variation in color to accept.")
-            if output_format in ['JPEG', 'BMP']:
-                st.warning("Selected output format does not support transparency!")
+        trans_disabled = output_format in ['JPEG', 'BMP']
+        trans_help = "Make a specific color transparent." if not trans_disabled else f"Transparency replacement is not available for {output_format} format."
+        replace_color = st.checkbox("Replace Color with Transparency", disabled=trans_disabled, help=trans_help)
+
+        inputs_disabled = trans_disabled or not replace_color
+        color_help = "Choose the color to make transparent." if not inputs_disabled else "Enable 'Replace Color with Transparency' to select a color."
+        tol_help = "How much variation in color to accept." if not inputs_disabled else "Enable 'Replace Color with Transparency' to adjust tolerance."
+
+        trans_color = st.color_picker("Color to Replace", "#FFFFFF", disabled=inputs_disabled, help=color_help)
+        trans_tolerance = st.slider("Tolerance", 0, 100, 10, disabled=inputs_disabled, help=tol_help)
 
     if 'processed_images' not in st.session_state:
         st.session_state.processed_images = None
