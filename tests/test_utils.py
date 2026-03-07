@@ -37,6 +37,28 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(len(parts), 3) # image, test, uuid.png
         self.assertEqual(len(parts[2].split('.')[0]), 8)
 
+    def test_get_unique_filename_path_traversal(self):
+        output_dir = "output"
+
+        # Test 1: Standard path traversal
+        malicious1 = "../../../etc/passwd"
+        result1 = get_unique_filename(malicious1, output_dir, suffix="test")
+        self.assertTrue(result1.startswith(os.path.join(output_dir, "passwd_test_")))
+        self.assertNotIn("..", result1)
+        self.assertNotIn("etc", result1)
+
+        # Test 2: Windows style path
+        malicious2 = "C:\\Windows\\System32\\cmd.exe"
+        result2 = get_unique_filename(malicious2, output_dir, suffix="test")
+        self.assertTrue(result2.startswith(os.path.join(output_dir, "cmd_test_")))
+        self.assertTrue(result2.endswith(".exe"))
+
+        # Test 3: Mixed slashes
+        malicious3 = "folder/subfolder\\image.png"
+        result3 = get_unique_filename(malicious3, output_dir, suffix="test")
+        self.assertTrue(result3.startswith(os.path.join(output_dir, "image_test_")))
+        self.assertTrue(result3.endswith(".png"))
+
     @patch('os.path.getsize')
     def test_get_file_info(self, mock_getsize):
         mock_getsize.return_value = 2048 # 2 KB
