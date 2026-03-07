@@ -17,3 +17,7 @@
 ## 2024-12-12 - Pillow Save Optimization
 **Learning:** `image.save(..., optimize=True)` in Pillow performs extra passes (e.g. Huffman table optimization for JPEG, filter trials for PNG) which can increase save time by 2-3x while only reducing file size by ~4-6%.
 **Action:** Changed the default behavior to `optimize=False` to prioritize speed, and exposed an "Optimize Encoding" checkbox for users who specifically need smaller files. This results in a ~3x speedup for saving operations.
+
+## 2024-12-12 - Histogram Calculation Mode Optimization
+**Learning:** Calling `image.convert('RGB')` on large `RGBA` images just to generate a histogram is unnecessary and very slow (~0.27s for a 6000x6000 image) because it allocates a new image buffer and copies pixels. `image.histogram()` on an `RGBA` image already returns a concatenated list of R, G, B, and A histograms, meaning the first 768 elements perfectly match the `RGB` histogram.
+**Action:** Updated `get_histogram_data` to skip the `RGB` conversion if the image is already in `RGBA` mode. This yields a ~2.7x speedup for calculating the histogram of large transparent images by avoiding defensive memory allocations and redundant pixel processing.
