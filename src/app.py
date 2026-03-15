@@ -198,7 +198,7 @@ def main():
         watermark_text = st.text_input("Watermark Text", max_chars=100, help="Text to overlay on the image.")
         if watermark_text:
             wm_opacity = st.slider("Opacity", 0, 100, 50, help="Transparency of the watermark.", format="%d%%")
-            wm_opacity = int(wm_opacity * 2.55) # map to 0-255
+            wm_opacity = int(round(wm_opacity * 255 / 100)) # map to 0-255 safely
             wm_size = st.number_input("Font Size", min_value=10, max_value=200, value=30, help="Size of the watermark text.")
             wm_color = st.color_picker("Text Color", "#FFFFFF", help="Color of the watermark text.")
         else:
