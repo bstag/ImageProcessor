@@ -74,7 +74,8 @@ def main():
         100,
         80,
         disabled=quality_disabled,
-        help=quality_help
+        help=quality_help,
+        format="%d%%"
     )
 
     # SVG Settings
@@ -91,10 +92,10 @@ def main():
             colormode = st.selectbox("Color Mode", ["color", "binary"], index=0, help="Color vs Black & White.")
             hierarchical = st.selectbox("Layering", ["stacked", "cutout"], index=0, help="Stacked = layers on top of each other. Cutout = no overlapping.")
             mode = st.selectbox("Curve Mode", ["spline", "polygon", "none"], index=0, help="Curve smoothing method.")
-            filter_speckle = st.slider("Filter Speckle", 0, 128, 4, help="Remove small noise (pixels).")
-            color_precision = st.slider("Color Precision", 1, 8, 6, help="Number of significant bits to use (lower = fewer colors).")
-            layer_difference = st.slider("Gradient Threshold", 0, 128, 16, help="Threshold for color difference.")
-            corner_threshold = st.slider("Corner Threshold", 0, 180, 60, help="Minimum angle to be considered a corner.")
+            filter_speckle = st.slider("Filter Speckle", 0, 128, 4, help="Remove small noise (pixels).", format="%d")
+            color_precision = st.slider("Color Precision", 1, 8, 6, help="Number of significant bits to use (lower = fewer colors).", format="%d")
+            layer_difference = st.slider("Gradient Threshold", 0, 128, 16, help="Threshold for color difference.", format="%d")
+            corner_threshold = st.slider("Corner Threshold", 0, 180, 60, help="Minimum angle to be considered a corner.", format="%d°")
 
     if quality_disabled:
         quality = 100
@@ -132,7 +133,8 @@ def main():
             1,
             200,
             100,
-            help="Scale the image by this percentage."
+            help="Scale the image by this percentage.",
+            format="%d%%"
         )
     elif resize_type == "Fixed Dimensions":
         col1, col2 = st.sidebar.columns(2)
@@ -151,10 +153,10 @@ def main():
     st.sidebar.subheader("Editor")
 
     with st.sidebar.expander("Enhancements"):
-        brightness = st.slider("Brightness", 0.0, 2.0, 1.0, 0.1, help="Adjust the brightness of the image.")
-        contrast = st.slider("Contrast", 0.0, 2.0, 1.0, 0.1, help="Adjust the contrast of the image.")
-        saturation = st.slider("Saturation", 0.0, 2.0, 1.0, 0.1, help="Adjust the color intensity.")
-        sharpness = st.slider("Sharpness", 0.0, 3.0, 1.0, 0.1, help="Adjust the sharpness of edges.")
+        brightness = st.slider("Brightness", 0.0, 2.0, 1.0, 0.1, help="Adjust the brightness of the image.", format="%.1fx")
+        contrast = st.slider("Contrast", 0.0, 2.0, 1.0, 0.1, help="Adjust the contrast of the image.", format="%.1fx")
+        saturation = st.slider("Saturation", 0.0, 2.0, 1.0, 0.1, help="Adjust the color intensity.", format="%.1fx")
+        sharpness = st.slider("Sharpness", 0.0, 3.0, 1.0, 0.1, help="Adjust the sharpness of edges.", format="%.1fx")
         filter_type = st.selectbox("Filter", ["None", "Blur", "Contour", "Detail", "Edge Enhance", "Emboss", "Sharpen", "Smooth"], index=0, help="Apply an image filter.")
 
     with st.sidebar.expander("Transforms"):
@@ -195,7 +197,8 @@ def main():
     with st.sidebar.expander("Watermark"):
         watermark_text = st.text_input("Watermark Text", max_chars=100, help="Text to overlay on the image.")
         if watermark_text:
-            wm_opacity = st.slider("Opacity", 0, 255, 128, help="Transparency of the watermark.")
+            wm_opacity = st.slider("Opacity", 0, 100, 50, help="Transparency of the watermark.", format="%d%%")
+            wm_opacity = int(round(wm_opacity * 255 / 100)) # map to 0-255 safely
             wm_size = st.number_input("Font Size", min_value=10, max_value=200, value=30, help="Size of the watermark text.")
             wm_color = st.color_picker("Text Color", "#FFFFFF", help="Color of the watermark text.")
         else:
@@ -208,13 +211,13 @@ def main():
         show_histogram = st.checkbox("Show Histogram", help="Display RGB color distribution charts.")
 
     with st.sidebar.expander("Effects"):
-        pixel_size = st.slider("Pixelate (Retro Effect)", 1, 100, 1, help="Increase to make the image look like 8-bit pixel art.")
+        pixel_size = st.slider("Pixelate (Retro Effect)", 1, 100, 1, help="Increase to make the image look like 8-bit pixel art.", format="%dpx")
 
     with st.sidebar.expander("Transparency"):
         replace_color = st.checkbox("Replace Color with Transparency", help="Make a specific color transparent.")
         if replace_color:
             trans_color = st.color_picker("Color to Replace", "#FFFFFF", help="Choose the color to make transparent.")
-            trans_tolerance = st.slider("Tolerance", 0, 100, 10, help="How much variation in color to accept.")
+            trans_tolerance = st.slider("Tolerance", 0, 100, 10, help="How much variation in color to accept.", format="%d%%")
             if output_format in ['JPEG', 'BMP']:
                 st.warning("Selected output format does not support transparency!")
 

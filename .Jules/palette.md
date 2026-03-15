@@ -11,3 +11,7 @@
 ## 2024-05-25 - Error Prevention in Uploaders
 **Learning:** While tooltips (`help`) are great for context, critical constraints (like file limits or size caps) hidden inside them often lead to user frustration when they hit an error *after* selecting files. Showing these limits explicitly via `st.caption` or labels *before* the action is taken shifts the UX from "Error Recovery" to "Error Prevention".
 **Action:** Always display hard constraints (limits, formats) visibly near the input component, not just in tooltips.
+
+## 2024-05-26 - Formatting Sliders for Clarity
+**Learning:** Raw numeric sliders (like `0.0 - 2.0` or `0 - 255`) lack context and can be confusing to users. Using Streamlit's `format` parameter on `st.slider` (e.g., `format="%.1fx"` for multipliers, `format="%d%%"` for percentages) provides immediate clarity on the unit and effect of the slider. Furthermore, mapping technical values (like a 0-255 opacity) to a user-friendly 0-100 percentage scale greatly improves intuition.
+**Action:** Always use explicit string formatting for sliders to indicate units (px, %, x) and map underlying technical scales to intuitive user-facing scales where appropriate.
