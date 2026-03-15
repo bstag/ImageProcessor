@@ -426,7 +426,7 @@ def main():
         st.subheader("Detailed Results")
         for item in st.session_state.processed_images:
             # Security: Sanitize filename for display and download
-            safe_name = os.path.basename(item['name'])
+            safe_name = os.path.basename(item['name'].replace('\\', '/'))
             name_stem = get_safe_filename_stem(item['name'])
 
             orig_size = item['original_size']
