@@ -107,14 +107,9 @@ class ImageProcessor:
         if len(text) > 1000:
             raise ValueError("Watermark text exceeds maximum allowed length of 1000 characters")
             
-        # Ensure image is RGBA for transparency support
-        original_mode = image.mode
-        if original_mode != 'RGBA':
-            image = image.convert('RGBA')
-        else:
-            # Bolt Optimization: If we are modifying in place (via alpha_composite or paste), we should technically copy first
-            # to remain consistent with pure function behavior if existing code relies on immutability.
-            image = image.copy()
+        # Bolt Optimization: If we are modifying in place (via alpha_composite or paste), we should technically copy first
+        # to remain consistent with pure function behavior if existing code relies on immutability.
+        image = image.copy()
             
         # Load font (try to load default with size, fallback to default)
         try:
@@ -146,16 +141,16 @@ class ImageProcessor:
         draw.text((-bbox[0], -bbox[1]), text, font=font, fill=(r, g, b, opacity))
         
         # Composite the small text layer onto the main image
-        # alpha_composite requires same size, so we use paste with the text layer itself as mask (it has alpha)
-        # Wait, paste with mask uses mask alpha. txt_layer IS the image and the mask.
-        image.alpha_composite(txt_layer, dest=(x, y))
-        
-        # Convert back to original mode if it wasn't RGBA (unless it was P or 1, then maybe RGB is safer)
-        if original_mode != 'RGBA':
-            if original_mode in ['P', '1']:
+        # Bolt Optimization: If the image is not RGBA, we do not need to convert the entire large image to RGBA
+        # and back just to blend the small transparent text layer. We can use paste() with the text layer as a mask.
+        # This eliminates two O(pixels) memory allocations and full image processing passes for RGB/L images.
+        if image.mode != 'RGBA':
+            # Fallback for palette or binary modes: convert to RGB first so the watermark colors aren't destroyed
+            if image.mode in ['P', '1']:
                 image = image.convert('RGB')
-            else:
-                image = image.convert(original_mode)
+            image.paste(txt_layer, (x, y), mask=txt_layer)
+        else:
+            image.alpha_composite(txt_layer, dest=(x, y))
                 
         return image
 
