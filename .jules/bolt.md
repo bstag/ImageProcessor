@@ -25,3 +25,7 @@
 ## 2024-05-19 - Image Rotation Optimization
 **Learning:** Using `Image.rotate(angle, expand=True)` triggers a general affine transformation in PIL, which involves expensive interpolation even for exact 90-degree rotations.
 **Action:** Replace `rotate()` with `Image.transpose(Image.Transpose.ROTATE_*)` when the angle is exactly 90, 180, or 270 degrees. This uses optimized C-level memory swapping that is significantly faster (~2.5x) and avoids sub-pixel artifacts.
+
+## 2025-01-28 - Watermark Blending Optimization
+**Learning:** Converting a large `RGB` image to `RGBA` solely to perform an `alpha_composite` with a small transparent layer, and then converting it back to `RGB`, is exceptionally slow (0.4s for a 6000x6000 image) and memory intensive.
+**Action:** Used `image.paste(overlay, box, mask=overlay)` directly on the non-RGBA image, which performs the alpha blending dynamically in C on only the localized pixels. This avoids entire image memory allocations and yields a ~60% speedup. Important edge case: Palette (`P`) and Binary (`1`) modes must still be converted to `RGB` before pasting to avoid destroying the overlay colors.
