@@ -244,7 +244,8 @@ def main():
             st.error(f"Upload limit exceeded: {error_msg}")
         elif st.button(f"Process {len(uploaded_files)} Image{'s' if len(uploaded_files) > 1 else ''}", type="primary", icon=":material/auto_fix_high:", help="Click to start processing all uploaded images with the selected settings."):
             processed_images = []
-            progress_bar = st.progress(0)
+            total_files = len(uploaded_files)
+            progress_bar = st.progress(0, text=f"Processing 0 of {total_files} images...")
             
             # Prepare configuration dictionary
             config = {
@@ -367,7 +368,7 @@ def main():
                             )
 
                         completed_count += 1
-                        progress_bar.progress(completed_count / len(uploaded_files))
+                        progress_bar.progress(completed_count / total_files, text=f"Processed {completed_count} of {total_files} images...")
 
                 # Generate Zip (Bolt Optimization: Cache ZIP generation to eliminate render-blocking I/O)
                 if processed_images:
