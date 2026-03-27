@@ -344,20 +344,16 @@ class ImageProcessor:
         import vtracer
         import tempfile
         import os
-        
-        temp_in_path = None
-        temp_out_path = None
 
-        try:
-            # Save PIL image to temp file
-            # Resource management: Use try...finally to ensure cleanup of temporary files even if image.save() or conversion fails
-            with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_in:
-                temp_in_path = temp_in.name
+        # Security: Use TemporaryDirectory to prevent symlink attacks and race conditions (CWE-377).
+        # It creates a secure, randomly named directory with restricted permissions (0700) where
+        # input and output files can safely reside.
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_in_path = os.path.join(temp_dir, 'input.png')
+            temp_out_path = os.path.join(temp_dir, 'output.svg')
 
-            # Close the file handle before writing to it via path to avoid locking issues on Windows
+            # Save PIL image to temp file in secure directory
             image.save(temp_in_path)
-
-            temp_out_path = temp_in_path + ".svg"
 
             # vtracer parameters
             params = {
@@ -380,19 +376,6 @@ class ImageProcessor:
                 svg_content = f.read()
                 
             return svg_content
-            
-        finally:
-            # Cleanup
-            if temp_in_path and os.path.exists(temp_in_path):
-                try:
-                    os.unlink(temp_in_path)
-                except:
-                    pass
-            if temp_out_path and os.path.exists(temp_out_path):
-                try:
-                    os.unlink(temp_out_path)
-                except:
-                    pass
 
     @staticmethod
     def process_and_save(image: Image.Image, output_format: str, quality: int = 85, optimize: bool = False, strip_metadata: bool = True, lossless: bool = False) -> io.BytesIO:
