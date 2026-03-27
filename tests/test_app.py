@@ -154,7 +154,7 @@ def test_svg_settings():
     
     main()
     
-    mock_st.sidebar.expander.assert_any_call("SVG Settings", expanded=True)
+    mock_st.sidebar.expander.assert_any_call("SVG Settings", expanded=True, icon=":material/polyline:")
 
 def test_results_display():
     """Test the results display logic."""
