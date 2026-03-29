@@ -88,7 +88,7 @@ def main():
     corner_threshold = 60
 
     if output_format == "SVG":
-        with st.sidebar.expander("SVG Settings", expanded=True):
+        with st.sidebar.expander("SVG Settings", expanded=True, icon=":material/polyline:"):
             colormode = st.selectbox("Color Mode", ["color", "binary"], index=0, help="Color vs Black & White.")
             hierarchical = st.selectbox("Layering", ["stacked", "cutout"], index=0, help="Stacked = layers on top of each other. Cutout = no overlapping.")
             mode = st.selectbox("Curve Mode", ["spline", "polygon", "none"], index=0, help="Curve smoothing method.")
@@ -152,14 +152,14 @@ def main():
     st.sidebar.markdown("---")
     st.sidebar.subheader("Editor")
 
-    with st.sidebar.expander("Enhancements"):
+    with st.sidebar.expander("Enhancements", icon=":material/tune:"):
         brightness = st.slider("Brightness", 0.0, 2.0, 1.0, 0.1, help="Adjust the brightness of the image.", format="%.1fx")
         contrast = st.slider("Contrast", 0.0, 2.0, 1.0, 0.1, help="Adjust the contrast of the image.", format="%.1fx")
         saturation = st.slider("Saturation", 0.0, 2.0, 1.0, 0.1, help="Adjust the color intensity.", format="%.1fx")
         sharpness = st.slider("Sharpness", 0.0, 3.0, 1.0, 0.1, help="Adjust the sharpness of edges.", format="%.1fx")
         filter_type = st.selectbox("Filter", ["None", "Blur", "Contour", "Detail", "Edge Enhance", "Emboss", "Sharpen", "Smooth"], index=0, help="Apply an image filter.")
 
-    with st.sidebar.expander("Transforms"):
+    with st.sidebar.expander("Transforms", icon=":material/transform:"):
         rotate = st.selectbox("Rotate", [0, 90, 180, 270], help="Rotate the image clockwise.")
         col1, col2 = st.columns(2)
         with col1:
@@ -168,7 +168,7 @@ def main():
             flip_v = st.checkbox("Flip Vertical", help="Mirror the image vertically.")
         grayscale = st.checkbox("Convert to Grayscale", help="Convert the image to black and white.")
 
-    with st.sidebar.expander("Crop"):
+    with st.sidebar.expander("Crop", icon=":material/crop:"):
         crop_mode = st.selectbox("Crop Mode", ["None", "Custom Box", "Aspect Center"], help="Choose a cropping strategy.")
         
         # Initialize crop variables with defaults (similar pattern to resize variables at lines 69-72)
@@ -194,7 +194,7 @@ def main():
             with a2:
                 crop_aspect_h = st.number_input("Aspect Height", min_value=1, value=1, help="Height ratio (e.g., 9 for 16:9).")
 
-    with st.sidebar.expander("Watermark"):
+    with st.sidebar.expander("Watermark", icon=":material/branding_watermark:"):
         watermark_text = st.text_input("Watermark Text", max_chars=100, help="Text to overlay on the image.")
         if watermark_text:
             wm_opacity = st.slider("Opacity", 0, 100, 50, help="Transparency of the watermark.", format="%d%%")
@@ -206,14 +206,14 @@ def main():
             wm_size = 30
             wm_color = "#FFFFFF"
 
-    with st.sidebar.expander("Analysis"):
+    with st.sidebar.expander("Analysis", icon=":material/analytics:"):
         extract_colors = st.checkbox("Extract Dominant Colors", help="Find and display the top 5 colors in the image.")
         show_histogram = st.checkbox("Show Histogram", help="Display RGB color distribution charts.")
 
-    with st.sidebar.expander("Effects"):
+    with st.sidebar.expander("Effects", icon=":material/blur_on:"):
         pixel_size = st.slider("Pixelate (Retro Effect)", 1, 100, 1, help="Increase to make the image look like 8-bit pixel art.", format="%dpx")
 
-    with st.sidebar.expander("Transparency"):
+    with st.sidebar.expander("Transparency", icon=":material/opacity:"):
         replace_color = st.checkbox("Replace Color with Transparency", help="Make a specific color transparent.")
         if replace_color:
             trans_color = st.color_picker("Color to Replace", "#FFFFFF", help="Choose the color to make transparent.")
@@ -443,7 +443,7 @@ def main():
                 icon = "⬇" if rounded_savings > 0 else "⬆"
                 label_text += f" {icon} {abs(rounded_savings):.1f}%"
 
-            with st.expander(label_text):
+            with st.expander(label_text, icon=":material/image:"):
                 if item.get("has_transparency"):
                     st.caption("ℹ️ Original image has transparency")
                 
