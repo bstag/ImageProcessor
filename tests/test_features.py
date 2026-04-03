@@ -83,11 +83,10 @@ def test_replace_color_with_transparency():
     assert a2.getextrema() == (0, 0)
 
 def test_convert_to_svg(base_image):
-    with patch('vtracer.convert_image_to_svg_py') as mock_vtracer, \
-         patch('builtins.open', new_callable=MagicMock) as mock_open:
+    with patch('vtracer.convert_raw_image_to_svg') as mock_vtracer:
         
-        # Mock file read
-        mock_open.return_value.__enter__.return_value.read.return_value = "<svg>...</svg>"
+        # Mock return value directly since we don't use files anymore
+        mock_vtracer.return_value = "<svg>...</svg>"
         
         svg = ImageProcessor.convert_to_svg(base_image)
         
