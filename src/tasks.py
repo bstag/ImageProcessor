@@ -31,17 +31,14 @@ def process_image_task(file_content: bytes, config: Dict[str, Any]) -> Dict[str,
             - error (str): Error message.
     """
     try:
-        # Load Image from bytes
-        image = Image.open(io.BytesIO(file_content))
+        # Security: Validate Image Format BEFORE full processing
+        # Pass explicitly allowed formats to Image.open to prevent Pillow from attempting to
+        # use vulnerable/obscure decoders (like PCX, SGI, TIFF) on maliciously crafted files.
+        # Note: HEIC is technically not in Pillow's OPEN dict, pillow_heif uses HEIF for both.
+        ALLOWED_FORMATS = ['PNG', 'JPEG', 'BMP', 'WEBP', 'HEIF', 'AVIF']
 
-        # Security: Validate Image Format
-        # Ensure the detected format is in our allowed list to prevent usage of vulnerable/obscure decoders.
-        # This protects against attacks where a malicious file (e.g. SGI, PCX) is uploaded with a safe extension (.png).
-        ALLOWED_FORMATS = {'PNG', 'JPEG', 'BMP', 'WEBP', 'HEIC', 'HEIF', 'AVIF'}
-        if image.format not in ALLOWED_FORMATS:
-             error_msg = f"Security violation: Image format '{image.format}' is not allowed."
-             logger.warning(error_msg)
-             raise SecurityError(error_msg)
+        # Load Image from bytes with format restrictions
+        image = Image.open(io.BytesIO(file_content), formats=ALLOWED_FORMATS)
 
         # Security: Check dimensions immediately to prevent DoS (Pixel Flood)
         # Note: image.size is available without loading the full raster data
