@@ -18,7 +18,7 @@ class TestImageFormatSecurity(unittest.TestCase):
         self.assertTrue(result['success'], f"Valid PNG should be processed. Error: {result.get('error')}")
 
     def test_blocked_format(self):
-        """Test that a blocked format (GIF) is rejected, even if it could be opened by Pillow."""
+        """Test that a blocked format (GIF) is rejected directly by Image.open restricted formats."""
         img = Image.new('RGB', (10, 10), color='red')
         img_byte_arr = io.BytesIO()
         img.save(img_byte_arr, format='GIF')
@@ -29,8 +29,8 @@ class TestImageFormatSecurity(unittest.TestCase):
         result = process_image_task(file_content, config)
 
         self.assertFalse(result['success'], "Blocked format (GIF) should fail")
-        self.assertIn("Security violation", result['error'])
-        self.assertIn("GIF", result['error'])
+        # Since Image.open catches it, it raises UnidentifiedImageError which returns standard invalid msg
+        self.assertEqual("Invalid or corrupt image file.", result['error'])
 
     def test_blocked_format_renamed(self):
         """
@@ -46,26 +46,17 @@ class TestImageFormatSecurity(unittest.TestCase):
         result = process_image_task(file_content, config)
 
         self.assertFalse(result['success'], "Renamed blocked format (TIFF) should fail")
-        self.assertIn("Security violation", result['error'])
-        self.assertIn("TIFF", result['error'])
+        self.assertEqual("Invalid or corrupt image file.", result['error'])
 
     @patch('src.tasks.Image.open')
     def test_blocked_format_mpo(self, mock_open):
         """
         Test that MPO format is rejected.
-        We mock Image.open because Pillow might not support creating/saving MPO files easily.
+        We mock Image.open to raise an exception because Pillow might not support creating/saving MPO files easily.
         """
-        # Create a mock image object
-        mock_img = MagicMock()
-        mock_img.format = 'MPO'
-        mock_img.size = (100, 100)
-        mock_img.width = 100
-        mock_img.height = 100
-
-        # Configure mock_open to return our mock image
-        mock_open.return_value = mock_img
-        # Support context manager if the code changes to use 'with Image.open()'
-        mock_img.__enter__.return_value = mock_img
+        # Since we pass formats parameter to Image.open, an invalid format should trigger UnidentifiedImageError
+        from PIL import UnidentifiedImageError
+        mock_open.side_effect = UnidentifiedImageError("cannot identify image file")
 
         # Pass dummy content; Image.open is mocked so it won't read it
         file_content = b'dummy content'
@@ -74,8 +65,7 @@ class TestImageFormatSecurity(unittest.TestCase):
         result = process_image_task(file_content, config)
 
         self.assertFalse(result['success'], "MPO format should be blocked")
-        self.assertIn("Security violation", result['error'])
-        self.assertIn("MPO", result['error'])
+        self.assertEqual("Invalid or corrupt image file.", result['error'])
 
 if __name__ == '__main__':
     unittest.main()

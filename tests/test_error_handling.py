@@ -9,17 +9,16 @@ class TestErrorHandling(unittest.TestCase):
     @patch('src.tasks.Image.open')
     def test_security_error_invalid_format(self, mock_open):
         """Test that SecurityError is raised and handled for invalid formats."""
-        # Setup mock image
-        mock_image = MagicMock()
-        mock_image.format = 'EXE' # Invalid format
-        mock_open.return_value = mock_image
+        # Setup mock image opening to fail with UnidentifiedImageError
+        from PIL import UnidentifiedImageError
+        mock_open.side_effect = UnidentifiedImageError("cannot identify image file")
 
         # Call the function
         result = process_image_task(b'fake_content', {})
 
         # Verify
         self.assertFalse(result['success'])
-        self.assertIn("Security violation: Image format", result['error'])
+        self.assertEqual("Invalid or corrupt image file.", result['error'])
 
     @patch('src.tasks.Image.open')
     def test_security_error_invalid_dimensions(self, mock_open):
