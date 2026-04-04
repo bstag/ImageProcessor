@@ -29,3 +29,7 @@
 ## 2025-01-28 - Watermark Blending Optimization
 **Learning:** Converting a large `RGB` image to `RGBA` solely to perform an `alpha_composite` with a small transparent layer, and then converting it back to `RGB`, is exceptionally slow (0.4s for a 6000x6000 image) and memory intensive.
 **Action:** Used `image.paste(overlay, box, mask=overlay)` directly on the non-RGBA image, which performs the alpha blending dynamically in C on only the localized pixels. This avoids entire image memory allocations and yields a ~60% speedup. Important edge case: Palette (`P`) and Binary (`1`) modes must still be converted to `RGB` before pasting to avoid destroying the overlay colors.
+
+## 2025-02-19 - Vectorization Disk I/O Optimization
+**Learning:** Saving an image to disk via `tempfile` and reading the generated SVG back from disk is an unnecessary and slow performance bottleneck when using `vtracer`.
+**Action:** Used `io.BytesIO` to keep image encoding in-memory and passed the raw bytes to `vtracer.convert_raw_image_to_svg(raw_bytes, img_format='png')` instead of `convert_image_to_svg_py`. This completely avoids file system operations and speeds up the vectorization pipeline.

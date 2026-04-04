@@ -342,40 +342,31 @@ class ImageProcessor:
         Converts a PIL Image to SVG string using vtracer.
         """
         import vtracer
-        import tempfile
-        import os
 
-        # Security: Use TemporaryDirectory to prevent symlink attacks and race conditions (CWE-377).
-        # It creates a secure, randomly named directory with restricted permissions (0700) where
-        # input and output files can safely reside.
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_in_path = os.path.join(temp_dir, 'input.png')
-            temp_out_path = os.path.join(temp_dir, 'output.svg')
+        # Bolt Optimization: Avoid slow disk I/O operations by saving the image to an in-memory
+        # bytes buffer and passing it directly to vtracer instead of using temporary files.
+        img_bytes = io.BytesIO()
+        image.save(img_bytes, format='PNG')
+        raw_bytes = img_bytes.getvalue()
 
-            # Save PIL image to temp file in secure directory
-            image.save(temp_in_path)
+        # vtracer parameters
+        params = {
+            'colormode': kwargs.get('colormode', 'color'),
+            'hierarchical': kwargs.get('hierarchical', 'stacked'),
+            'mode': kwargs.get('mode', 'spline'),
+            'filter_speckle': kwargs.get('filter_speckle', 4),
+            'color_precision': kwargs.get('color_precision', 6),
+            'layer_difference': kwargs.get('layer_difference', 16),
+            'corner_threshold': kwargs.get('corner_threshold', 60),
+            'length_threshold': kwargs.get('length_threshold', 10),
+            'max_iterations': kwargs.get('max_iterations', 10),
+            'splice_threshold': kwargs.get('splice_threshold', 45),
+            'path_precision': kwargs.get('path_precision', 3)
+        }
 
-            # vtracer parameters
-            params = {
-                'colormode': kwargs.get('colormode', 'color'),
-                'hierarchical': kwargs.get('hierarchical', 'stacked'),
-                'mode': kwargs.get('mode', 'spline'),
-                'filter_speckle': kwargs.get('filter_speckle', 4),
-                'color_precision': kwargs.get('color_precision', 6),
-                'layer_difference': kwargs.get('layer_difference', 16),
-                'corner_threshold': kwargs.get('corner_threshold', 60),
-                'length_threshold': kwargs.get('length_threshold', 10),
-                'max_iterations': kwargs.get('max_iterations', 10),
-                'splice_threshold': kwargs.get('splice_threshold', 45),
-                'path_precision': kwargs.get('path_precision', 3)
-            }
+        svg_content = vtracer.convert_raw_image_to_svg(raw_bytes, img_format='png', **params)
             
-            vtracer.convert_image_to_svg_py(temp_in_path, temp_out_path, **params)
-            
-            with open(temp_out_path, 'r', encoding='utf-8') as f:
-                svg_content = f.read()
-                
-            return svg_content
+        return svg_content
 
     @staticmethod
     def process_and_save(image: Image.Image, output_format: str, quality: int = 85, optimize: bool = False, strip_metadata: bool = True, lossless: bool = False) -> io.BytesIO:
