@@ -15,3 +15,7 @@
 ## 2024-05-26 - Formatting Sliders for Clarity
 **Learning:** Raw numeric sliders (like `0.0 - 2.0` or `0 - 255`) lack context and can be confusing to users. Using Streamlit's `format` parameter on `st.slider` (e.g., `format="%.1fx"` for multipliers, `format="%d%%"` for percentages) provides immediate clarity on the unit and effect of the slider. Furthermore, mapping technical values (like a 0-255 opacity) to a user-friendly 0-100 percentage scale greatly improves intuition.
 **Action:** Always use explicit string formatting for sliders to indicate units (px, %, x) and map underlying technical scales to intuitive user-facing scales where appropriate.
+
+## 2024-05-27 - Input Placeholders for Context
+**Learning:** Streamlit's `st.text_input` supports a `placeholder` argument. Providing explicit examples (e.g., "e.g. © 2024 MyBrand" for a Watermark field) improves usability by guiding the user on the expected input format without adding visual clutter like extra labels.
+**Action:** Always use the `placeholder` parameter for text inputs to provide clear, contextual examples.

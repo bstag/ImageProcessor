@@ -195,7 +195,7 @@ def main():
                 crop_aspect_h = st.number_input("Aspect Height", min_value=1, value=1, help="Height ratio (e.g., 9 for 16:9).")
 
     with st.sidebar.expander("Watermark", icon=":material/branding_watermark:"):
-        watermark_text = st.text_input("Watermark Text", max_chars=100, help="Text to overlay on the image.")
+        watermark_text = st.text_input("Watermark Text", max_chars=100, help="Text to overlay on the image.", placeholder="e.g. © 2024 MyBrand")
         if watermark_text:
             wm_opacity = st.slider("Opacity", 0, 100, 50, help="Transparency of the watermark.", format="%d%%")
             wm_opacity = int(round(wm_opacity * 255 / 100)) # map to 0-255 safely
