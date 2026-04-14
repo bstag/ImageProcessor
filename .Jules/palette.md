@@ -19,3 +19,7 @@
 ## 2024-05-27 - Input Placeholders for Context
 **Learning:** Streamlit's `st.text_input` supports a `placeholder` argument. Providing explicit examples (e.g., "e.g. © 2024 MyBrand" for a Watermark field) improves usability by guiding the user on the expected input format without adding visual clutter like extra labels.
 **Action:** Always use the `placeholder` parameter for text inputs to provide clear, contextual examples.
+
+## 2024-05-28 - Selectbox Formatting for Clarity
+**Learning:** Similar to sliders, raw numerical arrays in `st.selectbox` (like `[0, 90, 180, 270]` for rotation) can lack explicit unit context for the user. Streamlit's `st.selectbox` supports a `format_func` parameter that allows the displayed label to be modified (e.g., adding a degree symbol `°`) without changing the underlying value returned to the application logic.
+**Action:** Always consider using `format_func` on selectboxes to provide explicit units or more descriptive labels for technical enum values or numerical arrays.

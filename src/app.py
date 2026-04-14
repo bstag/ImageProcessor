@@ -160,7 +160,7 @@ def main():
         filter_type = st.selectbox("Filter", ["None", "Blur", "Contour", "Detail", "Edge Enhance", "Emboss", "Sharpen", "Smooth"], index=0, help="Apply an image filter.")
 
     with st.sidebar.expander("Transforms", icon=":material/transform:"):
-        rotate = st.selectbox("Rotate", [0, 90, 180, 270], help="Rotate the image clockwise.")
+        rotate = st.selectbox("Rotate", [0, 90, 180, 270], format_func=lambda x: f"{x}°", help="Rotate the image clockwise.")
         col1, col2 = st.columns(2)
         with col1:
             flip_h = st.checkbox("Flip Horizontal", help="Mirror the image horizontally.")
