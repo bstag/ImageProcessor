@@ -7,6 +7,9 @@ from typing import List, Tuple, Optional, Union, Dict, Any
 # Register HEIF opener
 pillow_heif.register_heif_opener()
 
+# Security: Align Pillow's global decompression bomb protection with our custom limit
+Image.MAX_IMAGE_PIXELS = 6000 ** 2
+
 class ImageProcessor:
     # Reduced from 10000 to 6000 to prevent DoS via memory exhaustion (Pixel Flood)
     MAX_IMAGE_DIMENSION = 6000

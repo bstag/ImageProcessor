@@ -39,6 +39,19 @@ class TestErrorHandling(unittest.TestCase):
         self.assertIn("exceed maximum allowed size", result['error'])
 
     @patch('src.tasks.Image.open')
+    def test_decompression_bomb_error(self, mock_open):
+        """Test that DecompressionBombError is caught and handled gracefully (prevents log spam/DoS)."""
+        from PIL import Image
+        mock_open.side_effect = Image.DecompressionBombError("Image size exceeds limit")
+
+        # Call the function
+        result = process_image_task(b'fake_huge_image', {})
+
+        # Verify
+        self.assertFalse(result['success'])
+        self.assertEqual(result['error'], "Image is too large or highly compressed.")
+
+    @patch('src.tasks.Image.open')
     def test_unidentified_image_error(self, mock_open):
         """Test that UnidentifiedImageError is handled gracefully."""
         # Setup mock to raise exception
