@@ -17,3 +17,7 @@
 **Vulnerability:** The application was loading all image files via `Image.open()` before manually checking `image.format` against an allowlist. This allowed Pillow to run arbitrary image decoders (like PCX, SGI, TIFF) on potentially malicious files, increasing the attack surface.
 **Learning:** Checking `image.format` after `Image.open()` has already parsed the file is too late to prevent decoder-specific exploits. The damage or exploit might occur during the parsing phase.
 **Prevention:** Always restrict the allowed decoders at load time using `Image.open(..., formats=ALLOWED_FORMATS)`. This ensures Pillow only uses safe, explicitly allowed decoders to parse the incoming file stream.
+## 2025-10-27 - [Decompression Bomb Prevention]
+**Vulnerability:** Pillow's default `Image.MAX_IMAGE_PIXELS` limit was higher than the application's intended limits, and raising `DecompressionBombError` led to unhandled exceptions with full stack traces in the logs (DoS via log spam / memory exhaustion before the application logic checked dimensions).
+**Learning:** Security validations at the application layer (`MAX_IMAGE_DIMENSION`) are only effective if the underlying library (Pillow) doesn't parse or allocate memory for malicious files first. Global library limits must be aligned with application limits.
+**Prevention:** Always explicitly configure underlying library protection limits (e.g., `Image.MAX_IMAGE_PIXELS`) and catch library-specific security exceptions (`Image.DecompressionBombError`) to handle them gracefully without leaking system state or spamming logs.

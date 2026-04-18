@@ -200,6 +200,13 @@ def process_image_task(file_content: bytes, config: Dict[str, Any]) -> Dict[str,
             "success": False,
             "error": "Invalid or corrupt image file."
         }
+    except Image.DecompressionBombError as e:
+        # Security: Catch decompression bomb errors explicitly to prevent massive stack traces (DoS)
+        logger.warning(f"Decompression bomb prevented: {str(e)}")
+        return {
+            "success": False,
+            "error": "Image is too large or highly compressed."
+        }
     except Exception as e:
         # Catch-all for unexpected errors to prevent information leakage
         # Log the full details for debugging
