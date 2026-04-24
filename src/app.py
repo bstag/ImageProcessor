@@ -452,7 +452,7 @@ def main():
                     cols = st.columns(len(item["dominant_colors"]))
                     for idx, color in enumerate(item["dominant_colors"]):
                         with cols[idx]:
-                            st.color_picker(f"Color {idx+1}", color, disabled=True, key=f"c_{name_stem}_{idx}")
+                            st.color_picker(f"Color {idx+1}", color, disabled=True, key=f"c_{name_stem}_{idx}", label_visibility="collapsed")
                             st.caption(color)
 
                 if item.get("histogram_data"):

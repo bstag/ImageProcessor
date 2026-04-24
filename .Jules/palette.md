@@ -23,3 +23,7 @@
 ## 2024-05-28 - Selectbox Formatting for Clarity
 **Learning:** Similar to sliders, raw numerical arrays in `st.selectbox` (like `[0, 90, 180, 270]` for rotation) can lack explicit unit context for the user. Streamlit's `st.selectbox` supports a `format_func` parameter that allows the displayed label to be modified (e.g., adding a degree symbol `°`) without changing the underlying value returned to the application logic.
 **Action:** Always consider using `format_func` on selectboxes to provide explicit units or more descriptive labels for technical enum values or numerical arrays.
+
+## 2024-05-29 - Removing Visual Clutter with Collapsed Labels
+**Learning:** In Streamlit, when displaying arrays of items (like a color palette) where the visual representation is self-evident or accompanied by a separate caption, repeating the label (e.g., "Color 1", "Color 2") creates unnecessary visual clutter. Using `label_visibility="collapsed"` hides the label visually while keeping it accessible for screen readers.
+**Action:** Use `label_visibility="collapsed"` on repeating widgets in tight layouts when the context is clear or a custom caption is provided.
