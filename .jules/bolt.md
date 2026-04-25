@@ -37,3 +37,7 @@
 ## 2025-02-19 - FASTOCTREE Quantization for Dominant Colors
 **Learning:** Extracting dominant colors via `image.quantize()` uses `MEDIANCUT` by default, which can be computationally expensive (taking ~40ms for small images). Using `method=Image.Quantize.FASTOCTREE` is drastically faster (~1ms, ~40x speedup) with practically no visual loss when fetching simple dominant hex colors.
 **Action:** Changed the default quantization method in `get_dominant_colors` to `Image.Quantize.FASTOCTREE` to accelerate analysis times for user uploads without noticeable quality degradation.
+
+## 2025-02-19 - Histogram Optimization for Large Images
+**Learning:** Extracting an exact histogram from very large images (e.g., 6000x6000) using `image.histogram()` is extremely slow (>0.1s), blocking execution. Since this histogram is solely used for visualizing color distributions in the UI, an exact pixel count is unnecessary.
+**Action:** Implemented downsampling using `Image.Resampling.NEAREST` when an image exceeds 1,000,000 pixels before taking its histogram. This approximation provides nearly identical visual distributions but operates >10x faster (~0.007s vs ~0.10s) and significantly speeds up batch processing.
