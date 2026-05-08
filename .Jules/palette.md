@@ -27,3 +27,7 @@
 ## 2024-05-29 - Removing Visual Clutter with Collapsed Labels
 **Learning:** In Streamlit, when displaying arrays of items (like a color palette) where the visual representation is self-evident or accompanied by a separate caption, repeating the label (e.g., "Color 1", "Color 2") creates unnecessary visual clutter. Using `label_visibility="collapsed"` hides the label visually while keeping it accessible for screen readers.
 **Action:** Use `label_visibility="collapsed"` on repeating widgets in tight layouts when the context is clear or a custom caption is provided.
+
+## 2024-05-30 - Error Prevention via Disabled States
+**Learning:** In Streamlit applications, allowing users to select options that are mutually exclusive or unsupported by other settings (e.g., choosing "Replace Color with Transparency" when the output format is "JPEG") and then displaying a warning later creates a frustrating "Error Recovery" flow. Proactively disabling the unsupported controls and updating their `help` text to explain *why* they are disabled shifts the UX to "Error Prevention", making the interface much more intuitive.
+**Action:** Always dynamically disable UI controls that are not applicable based on current selections and provide clear explanations in tooltips (`help` parameter) or `st.caption` to proactively prevent user error.

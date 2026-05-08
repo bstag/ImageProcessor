@@ -214,12 +214,19 @@ def main():
         pixel_size = st.slider("Pixelate (Retro Effect)", 1, 100, 1, help="Increase to make the image look like 8-bit pixel art.", format="%dpx")
 
     with st.sidebar.expander("Transparency", icon=":material/opacity:"):
-        replace_color = st.checkbox("Replace Color with Transparency", help="Make a specific color transparent.")
-        if replace_color:
+        transparency_disabled = output_format in ['JPEG', 'BMP']
+        transparency_help = "Make a specific color transparent."
+        if transparency_disabled:
+            transparency_help = f"Make a specific color transparent. (Disabled: {output_format} does not support transparency)"
+
+        replace_color = st.checkbox(
+            "Replace Color with Transparency",
+            help=transparency_help,
+            disabled=transparency_disabled
+        )
+        if replace_color and not transparency_disabled:
             trans_color = st.color_picker("Color to Replace", "#FFFFFF", help="Choose the color to make transparent.")
             trans_tolerance = st.slider("Tolerance", 0, 100, 10, help="How much variation in color to accept.", format="%d%%")
-            if output_format in ['JPEG', 'BMP']:
-                st.warning("Selected output format does not support transparency!")
 
     if 'processed_images' not in st.session_state:
         st.session_state.processed_images = None
