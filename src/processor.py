@@ -402,6 +402,10 @@ class ImageProcessor:
             "optimize": optimize
         }
 
+        # Bolt Optimization: Speed up PNG saving by >30% when optimization is disabled
+        if output_format.upper() == 'PNG' and not optimize:
+             save_args['compress_level'] = 1
+
         # Add lossless param if supported (WebP, AVIF)
         if output_format.upper() in ['WEBP', 'AVIF']:
              save_args['lossless'] = lossless

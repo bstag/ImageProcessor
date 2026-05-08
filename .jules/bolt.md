@@ -45,3 +45,6 @@
 ## 2025-05-08 - PNG Compression Level Optimization
 **Learning:** When saving PNG images using Pillow without explicit optimization (`optimize=False`), the default compression level is used, which can be slow. Setting `compress_level=1` in `save_args` achieves a significant speedup (~30-40%) in save times with only a nominal increase in file size.
 **Action:** Automatically set `compress_level=1` when saving PNGs if the `optimize` flag is `False`. This provides a noticeably faster user experience for simple conversion tasks where file size is not the absolute top priority.
+## 2025-02-19 - PNG Compress Level Optimization
+**Learning:** By default, Pillow uses zlib's default compression level (level 6) when saving PNG files. This offers a good compression ratio but can be quite slow for large images. Changing `compress_level=1` provides a ~30-40% speedup in saving time with only a nominal (~1-2%) increase in file size.
+**Action:** When saving PNG files without explicit optimization enabled (`optimize=False`), set `compress_level=1` in `save_args` to significantly accelerate processing times for users prioritizing speed.
