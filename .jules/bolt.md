@@ -41,3 +41,7 @@
 ## 2025-02-19 - Histogram Optimization for Large Images
 **Learning:** Extracting an exact histogram from very large images (e.g., 6000x6000) using `image.histogram()` is extremely slow (>0.1s), blocking execution. Since this histogram is solely used for visualizing color distributions in the UI, an exact pixel count is unnecessary.
 **Action:** Implemented downsampling using `Image.Resampling.NEAREST` when an image exceeds 1,000,000 pixels before taking its histogram. This approximation provides nearly identical visual distributions but operates >10x faster (~0.007s vs ~0.10s) and significantly speeds up batch processing.
+
+## 2025-05-08 - PNG Compression Level Optimization
+**Learning:** When saving PNG images using Pillow without explicit optimization (`optimize=False`), the default compression level is used, which can be slow. Setting `compress_level=1` in `save_args` achieves a significant speedup (~30-40%) in save times with only a nominal increase in file size.
+**Action:** Automatically set `compress_level=1` when saving PNGs if the `optimize` flag is `False`. This provides a noticeably faster user experience for simple conversion tasks where file size is not the absolute top priority.
