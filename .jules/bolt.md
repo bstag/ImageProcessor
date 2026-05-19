@@ -48,3 +48,6 @@
 ## 2025-02-19 - PNG Compress Level Optimization
 **Learning:** By default, Pillow uses zlib's default compression level (level 6) when saving PNG files. This offers a good compression ratio but can be quite slow for large images. Changing `compress_level=1` provides a ~30-40% speedup in saving time with only a nominal (~1-2%) increase in file size.
 **Action:** When saving PNG files without explicit optimization enabled (`optimize=False`), set `compress_level=1` in `save_args` to significantly accelerate processing times for users prioritizing speed.
+## 2024-05-24 - Pillow Fast Encoding for WEBP and AVIF
+**Learning:** When generating WEBP or AVIF images using Pillow where maximum compression isn't strictly required (e.g., `optimize=False`), the default settings are unnecessarily slow.
+**Action:** Inject `method=0` for WEBP and `speed=10` for AVIF into the `save_args` to achieve a significant speedup (e.g. ~3x faster for WEBP) while saving files, with negligible negative impact on visual quality.
