@@ -89,11 +89,11 @@ def main():
 
     if output_format == "SVG":
         with st.sidebar.expander("SVG Settings", expanded=True, icon=":material/polyline:"):
-            colormode = st.selectbox("Color Mode", ["color", "binary"], index=0, help="Color vs Black & White.")
-            hierarchical = st.selectbox("Layering", ["stacked", "cutout"], index=0, help="Stacked = layers on top of each other. Cutout = no overlapping.")
-            mode = st.selectbox("Curve Mode", ["spline", "polygon", "none"], index=0, help="Curve smoothing method.")
-            filter_speckle = st.slider("Filter Speckle", 0, 128, 4, help="Remove small noise (pixels).", format="%d")
-            color_precision = st.slider("Color Precision", 1, 8, 6, help="Number of significant bits to use (lower = fewer colors).", format="%d")
+            colormode = st.selectbox("Color Mode", ["color", "binary"], index=0, format_func=lambda x: "Color" if x == "color" else "Black & White (Binary)", help="Color vs Black & White.")
+            hierarchical = st.selectbox("Layering", ["stacked", "cutout"], index=0, format_func=lambda x: "Stacked" if x == "stacked" else "Cutout", help="Stacked = layers on top of each other. Cutout = no overlapping.")
+            mode = st.selectbox("Curve Mode", ["spline", "polygon", "none"], index=0, format_func=lambda x: x.capitalize(), help="Curve smoothing method.")
+            filter_speckle = st.slider("Filter Speckle", 0, 128, 4, help="Remove small noise (pixels).", format="%dpx")
+            color_precision = st.slider("Color Precision", 1, 8, 6, help="Number of significant bits to use (lower = fewer colors).", format="%d bits")
             layer_difference = st.slider("Gradient Threshold", 0, 128, 16, help="Threshold for color difference.", format="%d")
             corner_threshold = st.slider("Corner Threshold", 0, 180, 60, help="Minimum angle to be considered a corner.", format="%d°")
 
@@ -102,16 +102,21 @@ def main():
     else:
         quality = quality_val
 
+    is_svg = output_format == "SVG"
+    strip_metadata_help = "Not applicable for SVG output." if is_svg else "Remove EXIF data (camera settings, location, etc.) to reduce file size and protect privacy."
     strip_metadata = st.sidebar.checkbox(
         "Strip Metadata",
         value=True,
-        help="Remove EXIF data (camera settings, location, etc.) to reduce file size and protect privacy."
+        disabled=is_svg,
+        help=strip_metadata_help
     )
 
+    optimize_encoding_help = "Not applicable for SVG output." if is_svg else "Perform extra compression passes to reduce file size. Disabling this speeds up processing significantly (up to 3x)."
     optimize_encoding = st.sidebar.checkbox(
         "Optimize Encoding",
         value=False,
-        help="Perform extra compression passes to reduce file size. Disabling this speeds up processing significantly (up to 3x)."
+        disabled=is_svg,
+        help=optimize_encoding_help
     )
 
     # Resizing Options
