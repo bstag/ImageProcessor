@@ -27,3 +27,7 @@
 ## 2024-05-29 - Removing Visual Clutter with Collapsed Labels
 **Learning:** In Streamlit, when displaying arrays of items (like a color palette) where the visual representation is self-evident or accompanied by a separate caption, repeating the label (e.g., "Color 1", "Color 2") creates unnecessary visual clutter. Using `label_visibility="collapsed"` hides the label visually while keeping it accessible for screen readers.
 **Action:** Use `label_visibility="collapsed"` on repeating widgets in tight layouts when the context is clear or a custom caption is provided.
+
+## 2024-05-30 - Transitional Empty States
+**Learning:** Between an initial empty state (no data) and a completed state (processed results), there is often a "transitional state" where data exists but action is required. If the UI relies on an action button placed far from the data input or if the user flow isn't linear, users can stall in this state. Adding context-aware calls to action (CTAs) that appear specifically in this transitional phase bridges the gap.
+**Action:** Always map the full user journey. Identify states where the user has provided input but the application requires further action to produce results, and add explicit instructional UI (like `st.info` with a directional icon) to guide the next step.

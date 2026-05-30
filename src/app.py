@@ -401,6 +401,8 @@ def main():
                 # Store in session state
                 st.session_state.processed_images = processed_images
                 st.toast("Processing Complete!", icon='🎉')
+        elif not st.session_state.processed_images:
+            st.info("👈 **Configure settings in the sidebar**, then click **Process** above to transform your images.", icon="💡")
 
     # Display Results if available in session state
     if st.session_state.processed_images:
