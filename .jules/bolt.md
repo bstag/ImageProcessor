@@ -1,57 +1,6 @@
-## 2024-12-12 - Parallel Processing for Image Uploads
-**Learning:** Streamlit apps block the main thread during processing. Sequential processing of multiple uploaded files is a significant bottleneck. ThreadPoolExecutor works well for Pillow operations which release the GIL.
-**Action:** Extracted processing logic to a stateless task function and used ThreadPoolExecutor to parallelize image processing, achieving ~40% speedup on bulk uploads. Important to pass raw bytes to workers as Streamlit's UploadedFile objects are not pickleable/thread-safe in the same way.
-
-## 2024-12-12 - Session State Memory Optimization
-**Learning:** Storing large `PIL.Image` objects in `st.session_state` causes significant memory bloat (uncompressed bitmaps) and slows down the app due to serialization overhead. Additionally, passing PIL objects to `st.image` forces Streamlit to re-encode them on every render.
-**Action:** Modified the processing task to return raw `bytes` (the already-compressed output) instead of `BytesIO` or `PIL.Image` objects. Updated the UI to render directly from these bytes. This reduces memory usage drastically and eliminates redundant CPU encoding cycles.
-
-## 2024-12-12 - Vectorized Image Color Replacement
-**Learning:** Iterating over image pixels using Python loops (`for item in image.getdata()`) is extremely slow. Even for a 1000x1000 image, this is 1 million iterations.
-**Action:** Replaced pixel iteration with Pillow's `Image.point()` (using lookup tables) and `ImageChops` math operations. This leverages C-level loops inside Pillow, resulting in a ~5x speedup (0.68s -> 0.14s) for color replacement operations.
-
-## 2024-05-22 - Avoid Defensive Image Copies
-**Learning:** `image.copy()` is expensive for large images as it duplicates the full pixel buffer. Often it's used defensively before analysis (like color extraction) or destructive edits.
-**Action:** Reorder the pipeline: perform non-destructive analysis first on the initial image object, then proceed with destructive edits. This eliminates the need for `image.copy()`. Also, store the original file bytes for UI display instead of the uncompressed PIL object to save memory.
-
-## 2024-12-12 - Pillow Save Optimization
-**Learning:** `image.save(..., optimize=True)` in Pillow performs extra passes (e.g. Huffman table optimization for JPEG, filter trials for PNG) which can increase save time by 2-3x while only reducing file size by ~4-6%.
-**Action:** Changed the default behavior to `optimize=False` to prioritize speed, and exposed an "Optimize Encoding" checkbox for users who specifically need smaller files. This results in a ~3x speedup for saving operations.
-
-## 2024-12-12 - Histogram Calculation Mode Optimization
-**Learning:** Calling `image.convert('RGB')` on large `RGBA` images just to generate a histogram is unnecessary and very slow (~0.27s for a 6000x6000 image) because it allocates a new image buffer and copies pixels. `image.histogram()` on an `RGBA` image already returns a concatenated list of R, G, B, and A histograms, meaning the first 768 elements perfectly match the `RGB` histogram.
-**Action:** Updated `get_histogram_data` to skip the `RGB` conversion if the image is already in `RGBA` mode. This yields a ~2.7x speedup for calculating the histogram of large transparent images by avoiding defensive memory allocations and redundant pixel processing.
-
-## 2024-05-19 - Image Rotation Optimization
-**Learning:** Using `Image.rotate(angle, expand=True)` triggers a general affine transformation in PIL, which involves expensive interpolation even for exact 90-degree rotations.
-**Action:** Replace `rotate()` with `Image.transpose(Image.Transpose.ROTATE_*)` when the angle is exactly 90, 180, or 270 degrees. This uses optimized C-level memory swapping that is significantly faster (~2.5x) and avoids sub-pixel artifacts.
-
-## 2025-01-28 - Watermark Blending Optimization
-**Learning:** Converting a large `RGB` image to `RGBA` solely to perform an `alpha_composite` with a small transparent layer, and then converting it back to `RGB`, is exceptionally slow (0.4s for a 6000x6000 image) and memory intensive.
-**Action:** Used `image.paste(overlay, box, mask=overlay)` directly on the non-RGBA image, which performs the alpha blending dynamically in C on only the localized pixels. This avoids entire image memory allocations and yields a ~60% speedup. Important edge case: Palette (`P`) and Binary (`1`) modes must still be converted to `RGB` before pasting to avoid destroying the overlay colors.
-
-## 2025-02-19 - Vectorization Disk I/O Optimization
-**Learning:** Saving an image to disk via `tempfile` and reading the generated SVG back from disk is an unnecessary and slow performance bottleneck when using `vtracer`.
-**Action:** Used `io.BytesIO` to keep image encoding in-memory and passed the raw bytes to `vtracer.convert_raw_image_to_svg(raw_bytes, img_format='png')` instead of `convert_image_to_svg_py`. This completely avoids file system operations and speeds up the vectorization pipeline.
-
-## 2025-02-19 - FASTOCTREE Quantization for Dominant Colors
-**Learning:** Extracting dominant colors via `image.quantize()` uses `MEDIANCUT` by default, which can be computationally expensive (taking ~40ms for small images). Using `method=Image.Quantize.FASTOCTREE` is drastically faster (~1ms, ~40x speedup) with practically no visual loss when fetching simple dominant hex colors.
-**Action:** Changed the default quantization method in `get_dominant_colors` to `Image.Quantize.FASTOCTREE` to accelerate analysis times for user uploads without noticeable quality degradation.
-
-## 2025-02-19 - Histogram Optimization for Large Images
-**Learning:** Extracting an exact histogram from very large images (e.g., 6000x6000) using `image.histogram()` is extremely slow (>0.1s), blocking execution. Since this histogram is solely used for visualizing color distributions in the UI, an exact pixel count is unnecessary.
-**Action:** Implemented downsampling using `Image.Resampling.NEAREST` when an image exceeds 1,000,000 pixels before taking its histogram. This approximation provides nearly identical visual distributions but operates >10x faster (~0.007s vs ~0.10s) and significantly speeds up batch processing.
-
-## 2025-05-08 - PNG Compression Level Optimization
-**Learning:** When saving PNG images using Pillow without explicit optimization (`optimize=False`), the default compression level is used, which can be slow. Setting `compress_level=1` in `save_args` achieves a significant speedup (~30-40%) in save times with only a nominal increase in file size.
-**Action:** Automatically set `compress_level=1` when saving PNGs if the `optimize` flag is `False`. This provides a noticeably faster user experience for simple conversion tasks where file size is not the absolute top priority.
-## 2025-02-19 - PNG Compress Level Optimization
-**Learning:** By default, Pillow uses zlib's default compression level (level 6) when saving PNG files. This offers a good compression ratio but can be quite slow for large images. Changing `compress_level=1` provides a ~30-40% speedup in saving time with only a nominal (~1-2%) increase in file size.
-**Action:** When saving PNG files without explicit optimization enabled (`optimize=False`), set `compress_level=1` in `save_args` to significantly accelerate processing times for users prioritizing speed.
-## 2024-05-24 - Pillow Fast Encoding for WEBP and AVIF
-**Learning:** When generating WEBP or AVIF images using Pillow where maximum compression isn't strictly required (e.g., `optimize=False`), the default settings are unnecessarily slow.
-**Action:** Inject `method=0` for WEBP and `speed=10` for AVIF into the `save_args` to achieve a significant speedup (e.g. ~3x faster for WEBP) while saving files, with negligible negative impact on visual quality.
-
-## 2025-05-22 - Optimize High-Quality Image Resizing
-**Learning:** Pillow's `Image.resize` using `Image.Resampling.LANCZOS` is computationally expensive and slow when downscaling an image significantly (e.g., from 6000x6000 to 1000x1000). The `reducing_gap` parameter, which is used by default in `thumbnail()` but not in `resize()`, allows Pillow to first perform a fast nearest-neighbor reduction by an integer factor before applying the slower high-quality filter. This drastically reduces the number of pixels the Lanczos filter must process.
-**Action:** Added `reducing_gap=2.0` to `image.resize(..., Image.Resampling.LANCZOS)` calls when downscaling. This provides a ~3-4x speedup for large downscales with identical visual quality.
+## 2026-05-29 - replace_color_with_transparency Alpha channel math optimization
+**Learning:** In `replace_color_with_transparency`, replacing the boolean logic of `mask_inv = ImageChops.invert(mask)` and `new_a = ImageChops.multiply(a, mask_inv)` with a single `ImageChops.subtract(a, mask)` produces mathematically identical results but requires one less image operation, improving speed.
+**Action:** Replaced invert+multiply with subtract to save CPU time on high-resolution masks.
+## 2026-05-29 - replace_color_with_transparency Alpha channel math optimization
+**Learning:** In `replace_color_with_transparency`, replacing the boolean logic of `mask_inv = ImageChops.invert(mask)` and `new_a = ImageChops.multiply(a, mask_inv)` with a single `ImageChops.subtract(a, mask)` produces mathematically identical results but requires one less image operation, improving speed.
+**Action:** Replaced invert+multiply with subtract to save CPU time on high-resolution masks.
