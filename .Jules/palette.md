@@ -31,3 +31,7 @@
 ## 2024-05-30 - Transitional Empty States
 **Learning:** Between an initial empty state (no data) and a completed state (processed results), there is often a "transitional state" where data exists but action is required. If the UI relies on an action button placed far from the data input or if the user flow isn't linear, users can stall in this state. Adding context-aware calls to action (CTAs) that appear specifically in this transitional phase bridges the gap.
 **Action:** Always map the full user journey. Identify states where the user has provided input but the application requires further action to produce results, and add explicit instructional UI (like `st.info` with a directional icon) to guide the next step.
+
+## 2024-06-05 - SVG Settings Contextual Disabling
+**Learning:** In the vectorization (SVG) settings, options like "Color Precision" and "Gradient Threshold" were enabled even when "Black & White (Binary)" mode was selected, leading to confusion as these sliders have no effect in binary mode.
+**Action:** Applied the "Error Prevention via Disabled States" pattern by dynamically setting `disabled=True` for these sliders when the color mode is "binary", and updated their `help` tooltips to clarify why they are disabled.

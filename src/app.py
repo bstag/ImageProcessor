@@ -93,8 +93,14 @@ def main():
             hierarchical = st.selectbox("Layering", ["stacked", "cutout"], index=0, format_func=lambda x: "Stacked" if x == "stacked" else "Cutout", help="Stacked = layers on top of each other. Cutout = no overlapping.")
             mode = st.selectbox("Curve Mode", ["spline", "polygon", "none"], index=0, format_func=lambda x: x.capitalize(), help="Curve smoothing method.")
             filter_speckle = st.slider("Filter Speckle", 0, 128, 4, help="Remove small noise (pixels).", format="%dpx")
-            color_precision = st.slider("Color Precision", 1, 8, 6, help="Number of significant bits to use (lower = fewer colors).", format="%d bits")
-            layer_difference = st.slider("Gradient Threshold", 0, 128, 16, help="Threshold for color difference.", format="%d")
+
+            is_binary = colormode == "binary"
+            color_precision_help = "Not applicable in Black & White mode." if is_binary else "Number of significant bits to use (lower = fewer colors)."
+            color_precision = st.slider("Color Precision", 1, 8, 6, disabled=is_binary, help=color_precision_help, format="%d bits")
+
+            layer_diff_help = "Not applicable in Black & White mode." if is_binary else "Threshold for color difference."
+            layer_difference = st.slider("Gradient Threshold", 0, 128, 16, disabled=is_binary, help=layer_diff_help, format="%d")
+
             corner_threshold = st.slider("Corner Threshold", 0, 180, 60, help="Minimum angle to be considered a corner.", format="%d°")
 
     if quality_disabled:
