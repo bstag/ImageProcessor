@@ -35,3 +35,7 @@
 ## 2024-06-05 - SVG Settings Contextual Disabling
 **Learning:** In the vectorization (SVG) settings, options like "Color Precision" and "Gradient Threshold" were enabled even when "Black & White (Binary)" mode was selected, leading to confusion as these sliders have no effect in binary mode.
 **Action:** Applied the "Error Prevention via Disabled States" pattern by dynamically setting `disabled=True` for these sliders when the color mode is "binary", and updated their `help` tooltips to clarify why they are disabled.
+
+## 2024-06-06 - Visible Disabled States for Discoverability
+**Learning:** Hiding dependent options completely (like removing Watermark settings when no text is provided) reduces discoverability and can confuse users who are looking for those settings but haven't taken the prerequisite action yet.
+**Action:** Show dependent options at all times but set `disabled=True`. This acts as a "teaser" to encourage user interaction and prevents confusion about where settings are located. When disabling, update the `help` parameter to explain exactly what action is needed to enable the setting.
