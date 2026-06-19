@@ -207,15 +207,15 @@ def main():
 
     with st.sidebar.expander("Watermark", icon=":material/branding_watermark:"):
         watermark_text = st.text_input("Watermark Text", max_chars=100, help="Text to overlay on the image.", placeholder="e.g. © 2024 MyBrand")
-        if watermark_text:
-            wm_opacity = st.slider("Opacity", 0, 100, 50, help="Transparency of the watermark.", format="%d%%")
-            wm_opacity = int(round(wm_opacity * 255 / 100)) # map to 0-255 safely
-            wm_size = st.number_input("Font Size", min_value=10, max_value=200, value=30, help="Size of the watermark text.")
-            wm_color = st.color_picker("Text Color", "#FFFFFF", help="Color of the watermark text.")
-        else:
-            wm_opacity = 128
-            wm_size = 30
-            wm_color = "#FFFFFF"
+
+        wm_disabled = not bool(watermark_text)
+        wm_disabled_help = "Enter Watermark Text above to enable this setting."
+
+        wm_opacity_slider = st.slider("Opacity", 0, 100, 50, help=wm_disabled_help if wm_disabled else "Transparency of the watermark.", format="%d%%", disabled=wm_disabled)
+        wm_opacity = int(round(wm_opacity_slider * 255 / 100)) # map to 0-255 safely
+
+        wm_size = st.number_input("Font Size", min_value=10, max_value=200, value=30, help=wm_disabled_help if wm_disabled else "Size of the watermark text.", disabled=wm_disabled)
+        wm_color = st.color_picker("Text Color", "#FFFFFF", help=wm_disabled_help if wm_disabled else "Color of the watermark text.", disabled=wm_disabled)
 
     with st.sidebar.expander("Analysis", icon=":material/analytics:"):
         extract_colors = st.checkbox("Extract Dominant Colors", help="Find and display the top 5 colors in the image.")
