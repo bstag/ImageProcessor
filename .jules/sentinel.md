@@ -21,3 +21,8 @@
 **Vulnerability:** Pillow's default `Image.MAX_IMAGE_PIXELS` limit was higher than the application's intended limits, and raising `DecompressionBombError` led to unhandled exceptions with full stack traces in the logs (DoS via log spam / memory exhaustion before the application logic checked dimensions).
 **Learning:** Security validations at the application layer (`MAX_IMAGE_DIMENSION`) are only effective if the underlying library (Pillow) doesn't parse or allocate memory for malicious files first. Global library limits must be aligned with application limits.
 **Prevention:** Always explicitly configure underlying library protection limits (e.g., `Image.MAX_IMAGE_PIXELS`) and catch library-specific security exceptions (`Image.DecompressionBombError`) to handle them gracefully without leaking system state or spamming logs.
+
+## 2025-10-28 - Unbounded Log Growth Prevention (DoS via Disk Exhaustion)
+**Vulnerability:** The application used a simple `logging.FileHandler` which appends to `app.log` indefinitely. In a high-traffic environment or under a batch processing DoS attack, this file will grow unbounded until the disk is completely exhausted, causing the entire application or server to crash.
+**Learning:** Standard file handlers do not manage log size. Any application that accepts user input and generates logs per file (like batch image processing) must account for the maximum possible storage the logs could consume over time.
+**Prevention:** Always use `logging.handlers.RotatingFileHandler` (or `TimedRotatingFileHandler`) with a strict `maxBytes` and `backupCount` configured to bound the maximum disk space that logs can consume.
