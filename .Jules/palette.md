@@ -35,3 +35,7 @@
 ## 2024-06-05 - SVG Settings Contextual Disabling
 **Learning:** In the vectorization (SVG) settings, options like "Color Precision" and "Gradient Threshold" were enabled even when "Black & White (Binary)" mode was selected, leading to confusion as these sliders have no effect in binary mode.
 **Action:** Applied the "Error Prevention via Disabled States" pattern by dynamically setting `disabled=True` for these sliders when the color mode is "binary", and updated their `help` tooltips to clarify why they are disabled.
+
+## 2025-06-26 - Improve Watermark Settings Discoverability
+**Learning:** Hiding dependent UI controls entirely (like Watermark Opacity, Size, and Color when text is empty) makes it hard for users to discover what configuration options are available. This can lead to frustration or unawareness of features.
+**Action:** Changed the UI to always display these dependent controls, but keep them disabled until the prerequisite (entering watermark text) is met. Added an explanatory suffix to the help text indicating how to enable them.
