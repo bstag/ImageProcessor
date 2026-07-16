@@ -35,7 +35,6 @@
 ## 2024-06-05 - SVG Settings Contextual Disabling
 **Learning:** In the vectorization (SVG) settings, options like "Color Precision" and "Gradient Threshold" were enabled even when "Black & White (Binary)" mode was selected, leading to confusion as these sliders have no effect in binary mode.
 **Action:** Applied the "Error Prevention via Disabled States" pattern by dynamically setting `disabled=True` for these sliders when the color mode is "binary", and updated their `help` tooltips to clarify why they are disabled.
-
-## 2025-06-26 - Improve Watermark Settings Discoverability
-**Learning:** Hiding dependent UI controls entirely (like Watermark Opacity, Size, and Color when text is empty) makes it hard for users to discover what configuration options are available. This can lead to frustration or unawareness of features.
-**Action:** Changed the UI to always display these dependent controls, but keep them disabled until the prerequisite (entering watermark text) is met. Added an explanatory suffix to the help text indicating how to enable them.
+## 2026-07-03 - Discoverability of Dependent Controls
+**Learning:** In Streamlit, conditionally hiding controls (like watermark opacity, size, color) based on a primary input (like watermark text) reduces discoverability because users don't know the options exist until they type something. This contradicts the 'Error Prevention via Disabled States' pattern.
+**Action:** Instead of wrapping dependent controls in `if condition:`, render them unconditionally but pass `disabled=not condition` and append context to the `help` parameter (e.g. '(Enter text above to enable)'). This improves predictability while maintaining state integrity.
