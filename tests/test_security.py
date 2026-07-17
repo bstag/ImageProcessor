@@ -36,6 +36,11 @@ class TestSecurity(unittest.TestCase):
         self.assertEqual(get_safe_filename_stem("/etc/passwd.jpg"), "passwd")
         self.assertEqual(get_safe_filename_stem("malicious\0.jpg"), "malicious")
         self.assertEqual(get_safe_filename_stem(".."), "image")
+        self.assertEqual(get_safe_filename_stem("C:malicious.jpeg"), "C_malicious")
+        self.assertEqual(get_safe_filename_stem("file.jpg:hidden"), "file")
+        self.assertEqual(get_safe_filename_stem("a*b?c<d>e|f.png"), "a_b_c_d_e_f")
+        self.assertEqual(get_safe_filename_stem("résumé.pdf"), "résumé")
+        self.assertEqual(get_safe_filename_stem("你好.jpg"), "你好")
 
     def test_validate_upload_constraints(self):
         """
