@@ -36,6 +36,12 @@ class TestSecurity(unittest.TestCase):
         self.assertEqual(get_safe_filename_stem("/etc/passwd.jpg"), "passwd")
         self.assertEqual(get_safe_filename_stem("malicious\0.jpg"), "malicious")
         self.assertEqual(get_safe_filename_stem(".."), "image")
+        # Test cross-platform drive letters and ADS
+        self.assertEqual(get_safe_filename_stem("C:passwd.jpg"), "C_passwd")
+        self.assertEqual(get_safe_filename_stem("C:\\Windows\\System32\\cmd.exe"), "cmd")
+        # Test illegal characters
+        self.assertEqual(get_safe_filename_stem("image<alert(1)>.png"), "image_alert(1)_")
+        self.assertEqual(get_safe_filename_stem("image|with?illegal*chars\".png"), "image_with_illegal_chars_")
 
     def test_validate_upload_constraints(self):
         """
