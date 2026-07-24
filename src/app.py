@@ -48,12 +48,17 @@ def main():
     )
 
     lossless = False
-    if output_format in ["WEBP", "AVIF"]:
-        lossless = st.sidebar.checkbox(
-            "Lossless Compression",
-            value=False,
-            help="Retain perfect quality at the cost of larger file size. Available for WebP and AVIF."
-        )
+    lossless_disabled = output_format not in ["WEBP", "AVIF"]
+    lossless_help = "Retain perfect quality at the cost of larger file size."
+    if lossless_disabled:
+        lossless_help += " (Only available for WebP and AVIF)"
+
+    lossless = st.sidebar.checkbox(
+        "Lossless Compression",
+        value=False,
+        help=lossless_help,
+        disabled=lossless_disabled
+    )
 
     quality_disabled = False
     quality_help = "Adjust compression level. Lower values result in smaller files but lower quality."
@@ -234,9 +239,13 @@ def main():
         if trans_disabled:
             st.caption(f"⚠️ Not supported for {output_format} format.")
 
-        if replace_color and not trans_disabled:
-            trans_color = st.color_picker("Color to Replace", "#FFFFFF", help="Choose the color to make transparent.")
-            trans_tolerance = st.slider("Tolerance", 0, 100, 10, help="How much variation in color to accept.", format="%d%%")
+        inputs_disabled = not replace_color or trans_disabled
+        inputs_help_suffix = " (Check 'Replace Color with Transparency' to enable)" if not replace_color and not trans_disabled else ""
+        if trans_disabled:
+            inputs_help_suffix = f" (Not supported for {output_format})"
+
+        trans_color = st.color_picker("Color to Replace", "#FFFFFF", help=f"Choose the color to make transparent.{inputs_help_suffix}", disabled=inputs_disabled)
+        trans_tolerance = st.slider("Tolerance", 0, 100, 10, help=f"How much variation in color to accept.{inputs_help_suffix}", format="%d%%", disabled=inputs_disabled)
 
     if 'processed_images' not in st.session_state:
         st.session_state.processed_images = None

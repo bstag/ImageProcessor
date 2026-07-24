@@ -38,3 +38,7 @@
 ## 2026-07-03 - Discoverability of Dependent Controls
 **Learning:** In Streamlit, conditionally hiding controls (like watermark opacity, size, color) based on a primary input (like watermark text) reduces discoverability because users don't know the options exist until they type something. This contradicts the 'Error Prevention via Disabled States' pattern.
 **Action:** Instead of wrapping dependent controls in `if condition:`, render them unconditionally but pass `disabled=not condition` and append context to the `help` parameter (e.g. '(Enter text above to enable)'). This improves predictability while maintaining state integrity.
+
+## 2024-07-24 - Discoverability of Conditionally Applicable Controls
+**Learning:** Radically hiding controls (like completely removing the 'Lossless Compression' checkbox or 'Transparency' color picker) when they don't apply to the current context creates jarring layout shifts and hurts discoverability. Users don't know the feature exists unless they randomly stumble upon the correct prerequisite state.
+**Action:** Use 'Error Prevention via Disabled States'. Render the controls unconditionally but set `disabled=True` and append an explanatory note to the `help` tooltip clarifying why it is disabled (e.g. 'Check XYZ to enable' or 'Not supported for format Y').
