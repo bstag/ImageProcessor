@@ -1,6 +1,22 @@
 import os
+import re
 import uuid
 from typing import List, Tuple, Union, IO, Any
+
+def sanitize_filename(filename: str) -> str:
+    """
+    Sanitize a filename for cross-platform safety.
+    Removes null bytes, directory components, and OS-specific illegal characters.
+    """
+    # Remove null bytes
+    filename = filename.replace('\0', '')
+    # Replace backslashes with forward slashes to ensure os.path.basename works
+    # even when running on Linux but processing a Windows path.
+    basename = os.path.basename(filename.replace("\\", "/"))
+    # Remove illegal cross-platform characters (Windows doesn't allow these)
+    # Using an exclusion regex instead of strict ASCII allowlist to preserve international characters
+    safe_name = re.sub(r'[:*?"<>|]', '_', basename)
+    return safe_name
 
 def format_bytes(size: float) -> str:
     # 2**10 = 1024
@@ -18,8 +34,8 @@ def format_bytes(size: float) -> str:
     return f"{abs_size:.2f} {power_labels[n]}"
 
 def get_unique_filename(original_filename: str, output_dir: str, suffix: str = "processed") -> str:
-    # Sanitize the original filename to prevent path traversal
-    safe_filename = os.path.basename(original_filename.replace("\\", "/"))
+    # Sanitize the original filename to prevent path traversal and cross-platform issues
+    safe_filename = sanitize_filename(original_filename)
     base, ext = os.path.splitext(safe_filename)
     unique_id = str(uuid.uuid4())[:8]
     new_filename = f"{base}_{suffix}_{unique_id}{ext}"
@@ -48,11 +64,13 @@ def get_safe_filename_stem(filename: str) -> str:
     ``".hidden"``), the resulting stem will be an empty string. A fallback
     name of ``"image"`` is used in this case as well.
     """
-    # Remove null bytes
-    filename = filename.replace('\0', '')
+    # Sanitize filename for cross-platform safety
+    safe_name = sanitize_filename(filename)
 
-    # Replace backslashes with forward slashes for cross-platform compatibility
-    safe_name = os.path.basename(filename.replace("\\", "/"))
+    # Remove illegal characters (e.g. drive letters, ADS, etc) for defense-in-depth
+    # We use a pattern that specifically targets dangerous characters rather than an allowlist
+    # to avoid breaking non-ASCII/internationalized filenames.
+    safe_name = re.sub(r'[:*?"<>|]', '_', safe_name)
 
     # Handle cases like "" or ".." or "."
     if not safe_name or safe_name.strip('.') == '':
