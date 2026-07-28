@@ -5,7 +5,7 @@ import zipfile
 import os
 import html
 from processor import ImageProcessor
-from utils import format_bytes, get_unique_filename, get_safe_filename_stem, validate_upload_constraints
+from utils import format_bytes, get_unique_filename, get_safe_filename_stem, validate_upload_constraints, sanitize_filename
 from tasks import process_image_task
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -47,6 +47,7 @@ def main():
         help="Select the file format for the processed images. WebP and AVIF offer better compression. SVG converts to vector."
     )
 
+<<<<<<< HEAD
     lossless = False
     lossless_disabled = output_format not in ["WEBP", "AVIF"]
     lossless_help = "Retain perfect quality at the cost of larger file size."
@@ -59,6 +60,17 @@ def main():
         help=lossless_help,
         disabled=lossless_disabled
     )
+=======
+    lossless_disabled = output_format not in ["WEBP", "AVIF"]
+    lossless_help_suffix = " (Select WEBP or AVIF above to enable)" if lossless_disabled else ""
+    lossless_val = st.sidebar.checkbox(
+        "Lossless Compression",
+        value=False,
+        disabled=lossless_disabled,
+        help=f"Retain perfect quality at the cost of larger file size. Available for WebP and AVIF.{lossless_help_suffix}"
+    )
+    lossless = lossless_val if not lossless_disabled else False
+>>>>>>> origin/main
 
     quality_disabled = False
     quality_help = "Adjust compression level. Lower values result in smaller files but lower quality."
@@ -239,6 +251,7 @@ def main():
         if trans_disabled:
             st.caption(f"⚠️ Not supported for {output_format} format.")
 
+<<<<<<< HEAD
         inputs_disabled = not replace_color or trans_disabled
         inputs_help_suffix = " (Check 'Replace Color with Transparency' to enable)" if not replace_color and not trans_disabled else ""
         if trans_disabled:
@@ -246,6 +259,13 @@ def main():
 
         trans_color = st.color_picker("Color to Replace", "#FFFFFF", help=f"Choose the color to make transparent.{inputs_help_suffix}", disabled=inputs_disabled)
         trans_tolerance = st.slider("Tolerance", 0, 100, 10, help=f"How much variation in color to accept.{inputs_help_suffix}", format="%d%%", disabled=inputs_disabled)
+=======
+        color_controls_disabled = not replace_color or trans_disabled
+        color_help_suffix = " (Enable 'Replace Color with Transparency' above)" if color_controls_disabled else ""
+
+        trans_color = st.color_picker("Color to Replace", "#FFFFFF", disabled=color_controls_disabled, help=f"Choose the color to make transparent.{color_help_suffix}")
+        trans_tolerance = st.slider("Tolerance", 0, 100, 10, disabled=color_controls_disabled, help=f"How much variation in color to accept.{color_help_suffix}", format="%d%%")
+>>>>>>> origin/main
 
     if 'processed_images' not in st.session_state:
         st.session_state.processed_images = None
@@ -458,7 +478,7 @@ def main():
         st.subheader("Detailed Results")
         for item in st.session_state.processed_images:
             # Security: Sanitize filename for display and download
-            safe_name = os.path.basename(item['name'].replace('\\', '/'))
+            safe_name = sanitize_filename(item['name'])
             name_stem = get_safe_filename_stem(item['name'])
 
             orig_size = item['original_size']
