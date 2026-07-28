@@ -67,6 +67,11 @@ def get_safe_filename_stem(filename: str) -> str:
     # Sanitize filename for cross-platform safety
     safe_name = sanitize_filename(filename)
 
+    # Remove illegal characters (e.g. drive letters, ADS, etc) for defense-in-depth
+    # We use a pattern that specifically targets dangerous characters rather than an allowlist
+    # to avoid breaking non-ASCII/internationalized filenames.
+    safe_name = re.sub(r'[:*?"<>|]', '_', safe_name)
+
     # Handle cases like "" or ".." or "."
     if not safe_name or safe_name.strip('.') == '':
         safe_name = "image"

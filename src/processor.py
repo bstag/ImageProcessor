@@ -365,8 +365,9 @@ class ImageProcessor:
 
         # Bolt Optimization: Avoid slow disk I/O operations by saving the image to an in-memory
         # bytes buffer and passing it directly to vtracer instead of using temporary files.
+        # Also use compress_level=1 to speed up intermediate PNG encoding.
         img_bytes = io.BytesIO()
-        image.save(img_bytes, format='PNG')
+        image.save(img_bytes, format='PNG', compress_level=1)
         raw_bytes = img_bytes.getvalue()
 
         # vtracer parameters

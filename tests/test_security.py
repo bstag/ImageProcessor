@@ -42,6 +42,11 @@ class TestSecurity(unittest.TestCase):
         # Test illegal characters
         self.assertEqual(get_safe_filename_stem("image<alert(1)>.png"), "image_alert(1)_")
         self.assertEqual(get_safe_filename_stem("image|with?illegal*chars\".png"), "image_with_illegal_chars_")
+        self.assertEqual(get_safe_filename_stem("C:malicious.jpeg"), "C_malicious")
+        self.assertEqual(get_safe_filename_stem("file.jpg:hidden"), "file")
+        self.assertEqual(get_safe_filename_stem("a*b?c<d>e|f.png"), "a_b_c_d_e_f")
+        self.assertEqual(get_safe_filename_stem("résumé.pdf"), "résumé")
+        self.assertEqual(get_safe_filename_stem("你好.jpg"), "你好")
 
     def test_validate_upload_constraints(self):
         """
