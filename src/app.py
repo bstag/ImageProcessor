@@ -5,7 +5,7 @@ import zipfile
 import os
 import html
 from processor import ImageProcessor
-from utils import format_bytes, get_unique_filename, get_safe_filename_stem, validate_upload_constraints
+from utils import format_bytes, get_unique_filename, get_safe_filename_stem, validate_upload_constraints, sanitize_filename
 from tasks import process_image_task
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -453,7 +453,7 @@ def main():
         st.subheader("Detailed Results")
         for item in st.session_state.processed_images:
             # Security: Sanitize filename for display and download
-            safe_name = os.path.basename(item['name'].replace('\\', '/'))
+            safe_name = sanitize_filename(item['name'])
             name_stem = get_safe_filename_stem(item['name'])
 
             orig_size = item['original_size']
