@@ -21,3 +21,8 @@
 **Vulnerability:** Pillow's default `Image.MAX_IMAGE_PIXELS` limit was higher than the application's intended limits, and raising `DecompressionBombError` led to unhandled exceptions with full stack traces in the logs (DoS via log spam / memory exhaustion before the application logic checked dimensions).
 **Learning:** Security validations at the application layer (`MAX_IMAGE_DIMENSION`) are only effective if the underlying library (Pillow) doesn't parse or allocate memory for malicious files first. Global library limits must be aligned with application limits.
 **Prevention:** Always explicitly configure underlying library protection limits (e.g., `Image.MAX_IMAGE_PIXELS`) and catch library-specific security exceptions (`Image.DecompressionBombError`) to handle them gracefully without leaking system state or spamming logs.
+
+## 2024-05-26 - Strict Filename Sanitization for Defense in Depth
+**Vulnerability:** A vulnerability existed where Windows-specific malicious paths (like `C:malicious.jpeg` or Alternate Data Streams like `file.jpg:hidden`) could bypass basic `os.path.basename` sanitization and be written into ZIP archives or the filesystem.
+**Learning:** `os.path.basename` does not fully strip all OS-specific dangerous characters on all platforms (e.g. it won't strip `:` on Unix when processing a Windows-style path). A strict allowlist regex (like `[^a-zA-Z0-9_\-\. ]`) is too aggressive and breaks internationalized filenames (like `résumé.pdf` or `你好.jpg`).
+**Prevention:** Use a targeted exclusion regex (e.g., `re.sub(r'[:*?"<>|]', '_', safe_name)`) *after* `os.path.basename` to explicitly strip specific illegal OS characters without breaking non-ASCII unicode filenames.
