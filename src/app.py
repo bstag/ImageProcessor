@@ -40,10 +40,19 @@ def main():
 
     # Output Format
     st.sidebar.subheader("Output Format")
+    format_descriptions = {
+        "WEBP": "WEBP (Web Optimized)",
+        "AVIF": "AVIF (Next-Gen Compression)",
+        "JPEG": "JPEG (Standard)",
+        "PNG": "PNG (Lossless)",
+        "BMP": "BMP (Uncompressed)",
+        "SVG": "SVG (Vectorize)"
+    }
     output_format = st.sidebar.selectbox(
         "Format",
         ["WEBP", "AVIF", "JPEG", "PNG", "BMP", "SVG"],
         index=0,
+        format_func=lambda x: format_descriptions.get(x, x),
         help="Select the file format for the processed images. WebP and AVIF offer better compression. SVG converts to vector."
     )
 
@@ -132,6 +141,7 @@ def main():
     resize_type = st.sidebar.selectbox(
         "Resize Mode",
         ["None", "Percentage", "Fixed Dimensions"],
+        format_func=lambda x: "Do Not Resize" if x == "None" else x,
         help="Choose how to resize the image."
     )
 
@@ -170,7 +180,13 @@ def main():
         contrast = st.slider("Contrast", 0.0, 2.0, 1.0, 0.1, help="Adjust the contrast of the image.", format="%.1fx")
         saturation = st.slider("Saturation", 0.0, 2.0, 1.0, 0.1, help="Adjust the color intensity.", format="%.1fx")
         sharpness = st.slider("Sharpness", 0.0, 3.0, 1.0, 0.1, help="Adjust the sharpness of edges.", format="%.1fx")
-        filter_type = st.selectbox("Filter", ["None", "Blur", "Contour", "Detail", "Edge Enhance", "Emboss", "Sharpen", "Smooth"], index=0, help="Apply an image filter.")
+        filter_type = st.selectbox(
+            "Filter",
+            ["None", "Blur", "Contour", "Detail", "Edge Enhance", "Emboss", "Sharpen", "Smooth"],
+            index=0,
+            format_func=lambda x: "No Filter" if x == "None" else x,
+            help="Apply an image filter."
+        )
 
     with st.sidebar.expander("Transforms", icon=":material/transform:"):
         rotate = st.selectbox("Rotate", [0, 90, 180, 270], format_func=lambda x: f"{x}°", help="Rotate the image clockwise.")
@@ -182,7 +198,12 @@ def main():
         grayscale = st.checkbox("Convert to Grayscale", help="Convert the image to black and white.")
 
     with st.sidebar.expander("Crop", icon=":material/crop:"):
-        crop_mode = st.selectbox("Crop Mode", ["None", "Custom Box", "Aspect Center"], help="Choose a cropping strategy.")
+        crop_mode = st.selectbox(
+            "Crop Mode",
+            ["None", "Custom Box", "Aspect Center"],
+            format_func=lambda x: "Do Not Crop" if x == "None" else x,
+            help="Choose a cropping strategy."
+        )
         
         # Initialize crop variables with defaults (similar pattern to resize variables at lines 69-72)
         crop_left = 0
