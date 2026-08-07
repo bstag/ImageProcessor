@@ -480,7 +480,7 @@ def main():
 
                 if item.get("histogram_data"):
                     st.markdown("**RGB Histogram:**")
-                    st.line_chart(item["histogram_data"])
+                    st.line_chart(item["histogram_data"], color=["#FF0000", "#00FF00", "#0000FF"])
 
                 col1, col2 = st.columns(2)
                 with col1:
