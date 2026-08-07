@@ -381,8 +381,10 @@ def main():
                                 "output_format": config['output_format']
                             })
                         else:
+                            # Security: Sanitize filename to prevent Markdown injection/XSS in st.error
+                            safe_name = sanitize_filename(name)
                             st.error(
-                                f"Error processing file '{name}' "
+                                f"Error processing file '{safe_name}' "
                                 f"(size: {format_bytes(original_bytes_size)}, "
                                 f"output format: {config.get('output_format', 'original')}): "
                                 f"{result['error']}"
