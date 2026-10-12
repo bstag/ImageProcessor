@@ -1,16 +1,86 @@
 import streamlit as st
 from PIL import Image
-import io
-import zipfile
 import os
 import html
+import base64
+import pandas as pd
 from processor import ImageProcessor
 from utils import format_bytes, get_unique_filename, get_safe_filename_stem, validate_upload_constraints, sanitize_filename, escape_markdown
 from tasks import process_image_task
+from exports import (RESPONSIVE_WIDTH_OPTIONS, assign_output_names, build_pdf, build_results_zip,
+                     build_srcset_html, zip_files)
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# Default values for settings that presets can change (widgets are keyed by these names)
+SETTING_DEFAULTS = {
+    'opt_preset': 'Custom',
+    'opt_format': 'WEBP',
+    'opt_quality': 80,
+    'opt_strip_metadata': True,
+    'opt_optimize': False,
+    'opt_resize_type': 'None',
+    'opt_width': 800,
+    'opt_height': 600,
+    'opt_maintain_aspect': True,
+}
+
+PRESETS = {
+    "Web": {
+        'description': "WebP, 80% quality, max 1920px. Good default for websites.",
+        'settings': {'opt_format': 'WEBP', 'opt_quality': 80, 'opt_resize_type': 'Fit Within',
+                     'opt_width': 1920, 'opt_height': 1920, 'opt_strip_metadata': True, 'opt_optimize': True},
+    },
+    "Email": {
+        'description': "JPEG, 75% quality, max 1280px. Small attachments that open anywhere.",
+        'settings': {'opt_format': 'JPEG', 'opt_quality': 75, 'opt_resize_type': 'Fit Within',
+                     'opt_width': 1280, 'opt_height': 1280, 'opt_strip_metadata': True, 'opt_optimize': True},
+    },
+    "Social Media": {
+        'description': "JPEG, 85% quality, max 2048px. Sharp uploads that platforms won't over-compress.",
+        'settings': {'opt_format': 'JPEG', 'opt_quality': 85, 'opt_resize_type': 'Fit Within',
+                     'opt_width': 2048, 'opt_height': 2048, 'opt_strip_metadata': True, 'opt_optimize': True},
+    },
+    "Thumbnail": {
+        'description': "WebP, 70% quality, max 400px. Previews and galleries.",
+        'settings': {'opt_format': 'WEBP', 'opt_quality': 70, 'opt_resize_type': 'Fit Within',
+                     'opt_width': 400, 'opt_height': 400, 'opt_strip_metadata': True, 'opt_optimize': True},
+    },
+}
+
+SOCIAL_SIZES = {
+    "Square 1:1 (1080×1080)": (1080, 1080),
+    "Portrait 4:5 (1080×1350)": (1080, 1350),
+    "Landscape 16:9 (1920×1080)": (1920, 1080),
+    "Story 9:16 (1080×1920)": (1080, 1920),
+    "Link Preview (1200×630)": (1200, 630),
+}
+
+MIME_SUBTYPES = {"svg": "svg+xml", "jpg": "jpeg"}
+
+
+def _apply_preset():
+    preset = PRESETS.get(st.session_state.opt_preset)
+    if preset:
+        for key, value in preset['settings'].items():
+            st.session_state[key] = value
+
+
+def _mark_custom():
+    """Any manual change to a preset-controlled setting switches the preset back to Custom."""
+    st.session_state.opt_preset = "Custom"
+
+
+def _hex_to_rgb(color: str):
+    color = color.lstrip('#')
+    return tuple(int(color[i:i + 2], 16) for i in (0, 2, 4))
+
 
 def main():
     st.set_page_config(page_title="Image Processor", layout="wide")
+
+    # Re-seed every run: Streamlit drops the state of widgets that weren't rendered last run
+    for key, value in SETTING_DEFAULTS.items():
+        st.session_state.setdefault(key, value)
 
     st.title("Image Processing & Optimization")
 
@@ -20,23 +90,24 @@ def main():
 
     uploaded_files = st.file_uploader(
         "Upload Images",
-        type=['png', 'jpg', 'jpeg', 'bmp', 'webp', 'heic', 'heif', 'avif'],
+        type=['png', 'jpg', 'jpeg', 'bmp', 'webp', 'heic', 'heif', 'avif', 'gif'],
         accept_multiple_files=True,
-        help="Supported: PNG, JPG, WEBP, HEIC, AVIF. Limit: 50 files, 200MB total."
+        help="Supported: PNG, JPG, WEBP, HEIC, AVIF, BMP, GIF (including animated). Limit: 50 files, 200MB total."
     )
-    st.caption("Supported formats: PNG, JPG, WEBP, HEIC, AVIF • Limit: 50 files, 200MB")
+    st.caption("Supported formats: PNG, JPG, WEBP, HEIC, AVIF, BMP, GIF • Limit: 50 files, 200MB")
 
     # Sidebar Configuration
     st.sidebar.header("Settings")
 
-    # Mode Selection (Disabled for now as logic is not implemented)
-    mode = st.sidebar.radio(
-        "Mode",
-        ["Rescaling", "Web Optimization"],
-        index=0,
-        disabled=True,
-        help="Optimization presets are coming soon! Configure settings manually below."
+    preset = st.sidebar.selectbox(
+        "Preset",
+        ["Custom", *PRESETS],
+        key='opt_preset',
+        on_change=_apply_preset,
+        help="Apply recommended settings in one click. Changing any of those settings afterwards switches back to Custom."
     )
+    if preset in PRESETS:
+        st.sidebar.caption(PRESETS[preset]['description'])
 
     # Output Format
     st.sidebar.subheader("Output Format")
@@ -51,7 +122,8 @@ def main():
     output_format = st.sidebar.selectbox(
         "Format",
         ["WEBP", "AVIF", "JPEG", "PNG", "BMP", "SVG"],
-        index=0,
+        key='opt_format',
+        on_change=_mark_custom,
         format_func=lambda x: format_descriptions.get(x, x),
         help=f"Select the file format for the processed images. WebP and AVIF offer better compression. SVG converts to vector (images larger than {ImageProcessor.MAX_SVG_DIMENSION}px are downscaled before tracing)."
     )
@@ -83,11 +155,26 @@ def main():
         "Quality",
         0,
         100,
-        80,
+        key='opt_quality',
+        on_change=_mark_custom,
         disabled=quality_disabled,
         help=quality_help,
         format="%d%%"
     )
+
+    target_supported = output_format in ImageProcessor.LOSSY_FORMATS and not lossless
+    target_help = (
+        "Automatically pick the highest quality that keeps each image under a size limit. The Quality slider becomes the maximum."
+        if target_supported else
+        "Available for JPEG, WebP and AVIF without Lossless Compression."
+    )
+    use_target_size = st.sidebar.checkbox("Target File Size", disabled=not target_supported, help=target_help)
+    target_size_kb = None
+    if use_target_size and target_supported:
+        target_size_kb = st.sidebar.number_input(
+            "Max size per image (KB)", min_value=5, max_value=50_000, value=200, step=10,
+            help="Images that can't reach this size even at the lowest quality are saved at the lowest quality and flagged in the results."
+        )
 
     # SVG Settings
     colormode = 'color'
@@ -123,7 +210,8 @@ def main():
     strip_metadata_help = "Not applicable for SVG output." if is_svg else "Remove EXIF data (camera settings, location, etc.) to reduce file size and protect privacy."
     strip_metadata = st.sidebar.checkbox(
         "Strip Metadata",
-        value=True,
+        key='opt_strip_metadata',
+        on_change=_mark_custom,
         disabled=is_svg,
         help=strip_metadata_help
     )
@@ -131,7 +219,8 @@ def main():
     optimize_encoding_help = "Not applicable for SVG output." if is_svg else "Perform extra compression passes to reduce file size. Disabling this speeds up processing significantly (up to 3x)."
     optimize_encoding = st.sidebar.checkbox(
         "Optimize Encoding",
-        value=False,
+        key='opt_optimize',
+        on_change=_mark_custom,
         disabled=is_svg,
         help=optimize_encoding_help
     )
@@ -140,9 +229,11 @@ def main():
     st.sidebar.subheader("Resizing")
     resize_type = st.sidebar.selectbox(
         "Resize Mode",
-        ["None", "Percentage", "Fixed Dimensions"],
-        format_func=lambda x: "Do Not Resize" if x == "None" else x,
-        help="Choose how to resize the image."
+        ["None", "Fit Within", "Percentage", "Fixed Dimensions"],
+        key='opt_resize_type',
+        on_change=_mark_custom,
+        format_func=lambda x: {"None": "Do Not Resize", "Fit Within": "Fit Within (shrink only)"}.get(x, x),
+        help="Fit Within shrinks images larger than the box and leaves smaller ones untouched. Fixed Dimensions scales up or down to the box."
     )
 
     width = None
@@ -159,15 +250,20 @@ def main():
             help="Scale the image by this percentage.",
             format="%d%%"
         )
-    elif resize_type == "Fixed Dimensions":
+    elif resize_type in ("Fixed Dimensions", "Fit Within"):
+        is_fit = resize_type == "Fit Within"
         col1, col2 = st.sidebar.columns(2)
-        width = col1.number_input("Width (px)", min_value=1, max_value=ImageProcessor.MAX_IMAGE_DIMENSION, value=800, help="Target width in pixels.")
-        height = col2.number_input("Height (px)", min_value=1, max_value=ImageProcessor.MAX_IMAGE_DIMENSION, value=600, help="Target height in pixels.")
-        maintain_aspect = st.sidebar.checkbox(
-            "Maintain Aspect Ratio",
-            value=True,
-            help="Preserve the original width-to-height ratio to prevent distortion."
-        )
+        width = col1.number_input("Max width (px)" if is_fit else "Width (px)", min_value=1, max_value=ImageProcessor.MAX_IMAGE_DIMENSION,
+                                  key='opt_width', on_change=_mark_custom, help="Target width in pixels.")
+        height = col2.number_input("Max height (px)" if is_fit else "Height (px)", min_value=1, max_value=ImageProcessor.MAX_IMAGE_DIMENSION,
+                                   key='opt_height', on_change=_mark_custom, help="Target height in pixels.")
+        if not is_fit:
+            maintain_aspect = st.sidebar.checkbox(
+                "Maintain Aspect Ratio",
+                key='opt_maintain_aspect',
+                on_change=_mark_custom,
+                help="Preserve the original width-to-height ratio to prevent distortion."
+            )
 
     # Editor Controls
     st.sidebar.markdown("---")
@@ -198,9 +294,9 @@ def main():
     with st.sidebar.expander("Crop", icon=":material/crop:"):
         crop_mode = st.selectbox(
             "Crop Mode",
-            ["None", "Custom Box", "Aspect Center"],
+            ["None", "Custom Box", "Aspect Center", "Social Preset"],
             format_func=lambda x: "Do Not Crop" if x == "None" else x,
-            help="Choose a cropping strategy."
+            help="Choose a cropping strategy. Social Preset outputs an exact size for social posts and link previews."
         )
         
         # Initialize crop variables with defaults (similar pattern to resize variables at lines 69-72)
@@ -225,6 +321,15 @@ def main():
                 crop_aspect_w = st.number_input("Aspect Width", min_value=1, value=1, help="Width ratio (e.g., 16 for 16:9).")
             with a2:
                 crop_aspect_h = st.number_input("Aspect Height", min_value=1, value=1, help="Height ratio (e.g., 9 for 16:9).")
+        elif crop_mode == "Social Preset":
+            social_label = st.selectbox("Size", list(SOCIAL_SIZES), help="Common social media and link-preview sizes.")
+            social_fit = st.radio(
+                "Fit", ["crop", "pad"], horizontal=True,
+                format_func=lambda x: "Crop to fill" if x == "crop" else "Pad to fit",
+                help="Crop trims the edges to fill the frame. Pad keeps the whole image and fills the empty space."
+            )
+            social_pad_color = st.color_picker("Pad Color", "#FFFFFF", disabled=social_fit != "pad",
+                                               help="Background color for Pad to fit.")
 
     with st.sidebar.expander("Watermark", icon=":material/branding_watermark:"):
         watermark_text = st.text_input("Watermark Text", max_chars=100, help="Text to overlay on the image.", placeholder="e.g. © 2024 MyBrand")
@@ -242,6 +347,29 @@ def main():
     with st.sidebar.expander("Analysis", icon=":material/analytics:"):
         extract_colors = st.checkbox("Extract Dominant Colors", help="Find and display the top 5 colors in the image.")
         show_histogram = st.checkbox("Show Histogram", help="Display RGB color distribution charts.")
+        compare_formats = st.checkbox(
+            "Compare Formats",
+            help="Also encode each result as WebP, AVIF, JPEG and PNG and show which is smallest."
+        )
+
+    with st.sidebar.expander("Export Extras", icon=":material/inventory_2:"):
+        responsive_disabled = output_format == "SVG"
+        responsive_widths = st.multiselect(
+            "Responsive Widths",
+            RESPONSIVE_WIDTH_OPTIONS,
+            format_func=lambda w: f"{w}px",
+            disabled=responsive_disabled,
+            help=("Not applicable for SVG output." if responsive_disabled else
+                  "Also export smaller copies at these widths (never enlarged) plus a ready-to-paste <img srcset> snippet, added to the ZIP.")
+        )
+        make_icons = st.checkbox(
+            "Favicon & App Icons",
+            help="Create favicon.ico, PNG favicons, an Apple touch icon, Android/PWA icons and a web manifest from each image (made before any watermark)."
+        )
+        make_pdf = st.checkbox(
+            "Combine into PDF",
+            help="Put every processed image on its own page of a single PDF (SVG results are skipped)."
+        )
 
     with st.sidebar.expander("Effects", icon=":material/blur_on:"):
         pixel_size = st.slider("Pixelate (Retro Effect)", 1, 100, 1, help="Increase to make the image look like 8-bit pixel art.", format="%dpx")
@@ -336,6 +464,21 @@ def main():
                     'crop_aspect_w': crop_aspect_w,
                     'crop_aspect_h': crop_aspect_h
                 })
+            elif crop_mode == "Social Preset":
+                config.update({
+                    'social_size': SOCIAL_SIZES[social_label],
+                    'social_fit': social_fit,
+                    'social_pad_color': _hex_to_rgb(social_pad_color)
+                })
+
+            if target_size_kb:
+                config['target_size_kb'] = target_size_kb
+            if compare_formats:
+                config['compare_formats'] = True
+            if responsive_widths and not responsive_disabled:
+                config['responsive_widths'] = list(responsive_widths)
+            if make_icons:
+                config['make_icons'] = True
 
             if replace_color:
                 tc = trans_color.lstrip('#')
@@ -399,7 +542,16 @@ def main():
                                 "has_transparency": result['has_transparency'],
                                 "dominant_colors": result.get('dominant_colors'),
                                 "histogram_data": result.get('histogram_data'),
-                                "output_format": config['output_format']
+                                "output_format": config['output_format'],
+                                "processed_dimensions": result.get('processed_dimensions'),
+                                "metadata": result.get('metadata'),
+                                "animated": result.get('animated', False),
+                                "frame_count": result.get('frame_count', 1),
+                                "target_size": result.get('target_size'),
+                                "format_sizes": result.get('format_sizes'),
+                                "responsive": result.get('responsive') or [],
+                                "icons": result.get('icons'),
+                                "strip_metadata": config['strip_metadata'],
                             })
                         else:
                             # Security: Escape filename to prevent Markdown injection in st.error
@@ -417,26 +569,24 @@ def main():
                 # Threads finish in any order; show results in the order files were uploaded
                 processed_images.sort(key=lambda item: item["upload_index"])
 
+                # Give every result a unique, sanitized name used by the ZIP, downloads and srcset
+                ext = config.get('output_format', 'JPEG').lower()
+                assign_output_names(processed_images, ext)
+                for item in processed_images:
+                    item['alt'] = sanitize_filename(item['name'])
+                    if item['icons']:
+                        item['icon_zip'] = zip_files(item['icons'])
+
+                # Combine into PDF (SVG results can't be rasterized with Pillow, so they're skipped)
+                st.session_state.pdf_data = None
+                if make_pdf:
+                    pdf_sources = [item['data'] for item in processed_images if item['output_format'] != 'SVG']
+                    if pdf_sources:
+                        st.session_state.pdf_data = build_pdf(pdf_sources)
+
                 # Generate Zip (Bolt Optimization: Cache ZIP generation to eliminate render-blocking I/O)
                 if processed_images:
-                    zip_buffer = io.BytesIO()
-                    with zipfile.ZipFile(zip_buffer, "w") as zf:
-                        # Track entry names so duplicate uploads don't produce colliding ZIP entries
-                        seen_filenames = set()
-                        for item in processed_images:
-                            # Security: Sanitize filename to prevent zip slip/path traversal
-                            name_stem = get_safe_filename_stem(item['name'])
-                            # Use config['output_format'] to ensure extension matches content
-                            ext = config.get('output_format', 'JPEG').lower()
-                            file_name = f"processed_{name_stem}.{ext}"
-                            counter = 1
-                            while file_name in seen_filenames:
-                                file_name = f"processed_{name_stem}_{counter}.{ext}"
-                                counter += 1
-                            seen_filenames.add(file_name)
-                            zf.writestr(file_name, item['data'])
-
-                    st.session_state.zip_data = zip_buffer.getvalue()
+                    st.session_state.zip_data = build_results_zip(processed_images, ext, st.session_state.pdf_data)
                     st.session_state.zip_filename = "processed_images.zip"
                 else:
                     st.session_state.zip_data = None
@@ -454,6 +604,7 @@ def main():
             st.session_state.processed_images = None
             st.session_state.zip_data = None
             st.session_state.zip_filename = None
+            st.session_state.pdf_data = None
             st.session_state.show_clear_toast = True
             st.rerun()
 
@@ -479,7 +630,16 @@ def main():
                 mime="application/zip",
                 type="primary",
                 icon=":material/archive:",
-                help="Download all processed images in a single ZIP file."
+                help="Download all processed images (plus any responsive sizes, icons and PDF) in a single ZIP file."
+            )
+        if st.session_state.get('pdf_data'):
+            st.download_button(
+                label="Download PDF",
+                data=st.session_state.pdf_data,
+                file_name="processed_images.pdf",
+                mime="application/pdf",
+                icon=":material/picture_as_pdf:",
+                help="All processed images combined into one PDF, one image per page."
             )
         
         # Individual Previews
@@ -505,6 +665,34 @@ def main():
             with st.expander(label_text, icon=":material/image:"):
                 if item.get("has_transparency"):
                     st.caption("ℹ️ Original image has transparency")
+
+                if item.get("animated"):
+                    st.caption(f"🎞️ Animation kept: {item['frame_count']} frames")
+                elif item.get("frame_count", 1) > 1:
+                    st.caption(f"🎞️ Original is animated ({item['frame_count']} frames); only the first frame was kept. "
+                               "Choose WebP, AVIF or PNG to keep the animation.")
+
+                target = item.get("target_size")
+                if target:
+                    if target['met']:
+                        st.caption(f"🎯 Under {format_bytes(target['target_bytes'])} at {target['quality']}% quality")
+                    else:
+                        st.warning(f"Couldn't get under {format_bytes(target['target_bytes'])} even at {target['quality']}% quality. "
+                                   "Try a smaller size with Resize, or a different format.", icon=":material/warning:")
+
+                metadata = item.get("metadata") or {}
+                if metadata.get("fields"):
+                    if metadata.get("has_gps"):
+                        if item.get("strip_metadata", True) and item.get("output_format") != "SVG":
+                            st.info("This photo had GPS location data. It was removed from the processed image.", icon=":material/location_off:")
+                        else:
+                            st.warning("This photo contains GPS location data, and it is still in the processed image because Strip Metadata is off.",
+                                       icon=":material/location_on:")
+                    st.markdown("**Metadata in original:**")
+                    st.dataframe(
+                        pd.DataFrame(list(metadata["fields"].items()), columns=["Field", "Value"]),
+                        hide_index=True, width="stretch"
+                    )
                 
                 if item.get("dominant_colors"):
                     st.markdown("**Dominant Colors:**")
@@ -518,15 +706,36 @@ def main():
                     st.markdown("**RGB Histogram:**")
                     st.line_chart(item["histogram_data"], color=["#FF0000", "#00FF00", "#0000FF"])
 
+                format_sizes = item.get("format_sizes")
+                if format_sizes:
+                    st.markdown("**Format Comparison:**")
+                    smallest = min(format_sizes, key=format_sizes.get)
+                    comparison = pd.DataFrame({
+                        "Format": list(format_sizes),
+                        "Size": [format_bytes(size) for size in format_sizes.values()],
+                        "vs Original": [f"{(size / orig_size - 1) * 100:+.1f}%" if orig_size else "" for size in format_sizes.values()],
+                        "KB": [round(size / 1024, 1) for size in format_sizes.values()],
+                    })
+                    st.bar_chart(comparison, x="Format", y="KB", horizontal=True, height=180)
+                    st.dataframe(comparison.drop(columns="KB"), hide_index=True, width="stretch")
+                    st.caption(f"Smallest: **{smallest}** at the same quality setting.")
+
                 col1, col2 = st.columns(2)
                 with col1:
                     st.image(item['original_data'], caption=f"Original ({format_bytes(item['original_size'])})")
                 with col2:
                     # Bolt: Use raw bytes ('data') instead of PIL object ('image') to avoid re-encoding overhead.
                     # SVG requires specific handling for display
-                    if item.get("data").startswith(b"<svg") or item.get("data").startswith(b"<?xml"):
+                    if item.get("animated"):
+                        # st.image re-encodes to a still image, so embed the animation directly
+                        b64 = base64.b64encode(item['data']).decode("utf-8")
+                        safe_alt = html.escape(safe_name)
+                        mime = MIME_SUBTYPES.get(item['output_format'].lower(), item['output_format'].lower())
+                        st.markdown(f'<img src="data:image/{mime};base64,{b64}" width="100%" alt="Processed animation of {safe_alt}"/>',
+                                    unsafe_allow_html=True)
+                        st.caption(f"Processed ({format_bytes(item['processed_size'])})")
+                    elif item.get("data").startswith(b"<svg") or item.get("data").startswith(b"<?xml"):
                             # Render SVG directly using markdown because st.image doesn't support SVG bytes directly
-                            import base64
                             b64 = base64.b64encode(item['data']).decode("utf-8")
                             safe_alt = html.escape(safe_name)
                             html_content = f'<img src="data:image/svg+xml;base64,{b64}" width="100%" alt="Processed SVG version of {safe_alt}" title="Processed SVG: {safe_alt}"/>'
@@ -535,17 +744,39 @@ def main():
                     else:
                         st.image(item['data'], caption=f"Processed ({format_bytes(item['processed_size'])})")
                 
+                if item.get("responsive"):
+                    st.markdown("**Responsive Sizes** (in the ZIP under `responsive/`):")
+                    st.caption(" • ".join(f"{v['width']}px: {format_bytes(len(v['data']))}" for v in item['responsive']))
+                    width_px, height_px = item['processed_dimensions']
+                    st.code(build_srcset_html([{
+                        'full_name': item.get('file_name', f"processed_{name_stem}.{item['output_format'].lower()}"),
+                        'full_width': width_px, 'full_height': height_px,
+                        'name_stem': item.get('unique_stem', name_stem), 'ext': item['output_format'].lower(),
+                        'alt': safe_name, 'variants': item['responsive'],
+                    }]), language="html")
+
                 item_format = item.get('output_format', output_format).lower()
-                mime_subtype = "svg+xml" if item_format == "svg" else item_format
-                st.download_button(
+                mime_subtype = MIME_SUBTYPES.get(item_format, item_format)
+                download_cols = st.columns(2 if item.get("icon_zip") else 1)
+                download_cols[0].download_button(
                     label=f"Download {md_name}",
                     data=item['data'],
-                    file_name=f"processed_{name_stem}.{item_format}",
+                    file_name=item.get('file_name', f"processed_{name_stem}.{item_format}"),
                     mime=f"image/{mime_subtype}",
                     key=f"dl_{item_idx}",
                     icon=":material/download:",
                     help=f"Download {safe_name}"
                 )
+                if item.get("icon_zip"):
+                    download_cols[1].download_button(
+                        label="Download Icon Pack",
+                        data=item['icon_zip'],
+                        file_name=f"icons_{item.get('unique_stem', name_stem)}.zip",
+                        mime="application/zip",
+                        key=f"icons_{item_idx}",
+                        icon=":material/apps:",
+                        help="favicon.ico, PNG favicons, Apple touch icon, Android/PWA icons, site.webmanifest and an HTML snippet."
+                    )
 
     if not uploaded_files and not st.session_state.processed_images:
         st.markdown("### 👋 Welcome to Image Processor!")
