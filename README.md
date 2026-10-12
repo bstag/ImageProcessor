@@ -41,7 +41,7 @@ A powerful, user-friendly web application built with **Streamlit** and **Pillow 
 
 ### 5. Export Extras
 *   **Responsive Image Sets**: Export smaller copies at 320–1920px widths plus a ready-to-paste `<img srcset>` snippet (`srcset.html`).
-*   **Favicon & App Icons**: `favicon.ico` (16/32/48), PNG favicons, Apple touch icon, Android/PWA icons, `site.webmanifest` and the HTML `<link>` tags.
+*   **Favicon & App Icons**: `favicon.ico` (16/32/48/64/256), 16px and 32px PNG favicons, 180px Apple touch icon, 192px and 512px Android/PWA icons plus **maskable** versions sized to the adaptive-icon safe zone, a 150px Windows tile, a 1024px App Store icon, `site.webmanifest`, `browserconfig.xml` and the HTML tags. Small images are scaled up to fill each icon; Apple, App Store and maskable icons get a white background because those platforms don't allow transparency.
 *   **Combine into PDF**: Every processed image on its own page of one PDF.
 
 ### 6. Workflow & Interface

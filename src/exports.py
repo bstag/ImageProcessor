@@ -13,66 +13,115 @@ from PIL import Image
 from processor import ImageProcessor
 from utils import get_safe_filename_stem  # Security: strips paths to prevent zip slip
 
-# Standard favicon / touch icon / PWA icon set
-ICON_PNG_SIZES = {
-    'favicon-16x16.png': 16,
-    'favicon-32x32.png': 32,
-    'apple-touch-icon.png': 180,
-    'android-chrome-192x192.png': 192,
-    'android-chrome-512x512.png': 512,
+# Favicon / touch icon / PWA / tile / store icon set: filename -> (size, style)
+#   'transparent': keeps transparency
+#   'opaque':      flattened onto white (iOS shows transparency as black; the App Store rejects it)
+#   'maskable':    opaque, with the image shrunk into the Android adaptive-icon safe zone
+ICON_PNG_SPECS = {
+    'favicon-16x16.png': (16, 'transparent'),
+    'favicon-32x32.png': (32, 'transparent'),
+    'mstile-150x150.png': (150, 'transparent'),
+    'apple-touch-icon.png': (180, 'opaque'),
+    'android-chrome-192x192.png': (192, 'transparent'),
+    'android-chrome-512x512.png': (512, 'transparent'),
+    'maskable-icon-192x192.png': (192, 'maskable'),
+    'maskable-icon-512x512.png': (512, 'maskable'),
+    'app-store-icon-1024x1024.png': (1024, 'opaque'),
 }
-ICO_SIZES = [(16, 16), (32, 32), (48, 48)]
+ICO_SIZES = [(16, 16), (32, 32), (48, 48), (64, 64), (256, 256)]
+
+# Maskable icons may be cropped to any shape containing a centred circle of radius 40%
+# of the icon, so the image's corners must fit inside that circle.
+MASKABLE_SAFE_ZONE_RADIUS = 0.40
+
+ICON_BACKGROUND = (255, 255, 255, 255)
+TRANSPARENT = (0, 0, 0, 0)
 
 RESPONSIVE_WIDTH_OPTIONS = [320, 640, 1024, 1280, 1920]
 
 
-def _square(image: Image.Image, size: int, background: Tuple[int, int, int, int]) -> Image.Image:
-    """Fit the whole image into a size x size square, centred on `background`."""
+def _square(image: Image.Image, size: int, background: Tuple[int, int, int, int],
+            content_size: Optional[Tuple[int, int]] = None) -> Image.Image:
+    """
+    Scale the whole image (up or down) to fit `content_size` (default: the full square),
+    centred on a size x size `background`. Non-square images are padded, never cropped.
+    """
     icon = image.convert('RGBA')
-    icon.thumbnail((size, size), Image.Resampling.LANCZOS)
+    box = content_size or (size, size)
+    scale = min(box[0] / icon.width, box[1] / icon.height)
+    icon = icon.resize((max(1, round(icon.width * scale)), max(1, round(icon.height * scale))),
+                       Image.Resampling.LANCZOS)
     canvas = Image.new('RGBA', (size, size), background)
     canvas.alpha_composite(icon, ((size - icon.width) // 2, (size - icon.height) // 2))
     return canvas
 
 
+def _maskable(image: Image.Image, size: int) -> Image.Image:
+    """Shrink the image so its corners fall inside the maskable safe-zone circle."""
+    diagonal = (image.width ** 2 + image.height ** 2) ** 0.5
+    scale = (2 * MASKABLE_SAFE_ZONE_RADIUS * size) / diagonal
+    content = (max(1, int(image.width * scale)), max(1, int(image.height * scale)))
+    return _square(image, size, ICON_BACKGROUND, content_size=content)
+
+
+def _icon(image: Image.Image, size: int, style: str) -> Image.Image:
+    if style == 'maskable':
+        return _maskable(image, size).convert('RGB')
+    if style == 'opaque':
+        return _square(image, size, ICON_BACKGROUND).convert('RGB')
+    return _square(image, size, TRANSPARENT)
+
+
 def make_icon_pack(image: Image.Image) -> Dict[str, bytes]:
     """
-    Build a favicon/app icon set from an image. Non-square images are padded (not cropped)
-    so logos keep their edges. The Apple touch icon gets a white background because iOS
-    renders transparency as black.
+    Build a favicon / app icon set from an image: a multi-size favicon.ico, PNG favicons,
+    Apple touch icon, Android/PWA icons (regular and maskable), a Windows tile, a 1024px
+    App Store icon, plus site.webmanifest, browserconfig.xml and the HTML tags to use them.
     """
-    transparent = (0, 0, 0, 0)
     files: Dict[str, bytes] = {}
 
     buf = io.BytesIO()
-    _square(image, 256, transparent).save(buf, 'ICO', sizes=ICO_SIZES)
+    _square(image, 256, TRANSPARENT).save(buf, 'ICO', sizes=ICO_SIZES)
     files['favicon.ico'] = buf.getvalue()
 
-    for name, size in ICON_PNG_SIZES.items():
-        background = (255, 255, 255, 255) if name == 'apple-touch-icon.png' else transparent
-        icon = _square(image, size, background)
-        if name == 'apple-touch-icon.png':
-            icon = icon.convert('RGB')
+    for name, (size, style) in ICON_PNG_SPECS.items():
         buf = io.BytesIO()
-        icon.save(buf, 'PNG', optimize=True)
+        _icon(image, size, style).save(buf, 'PNG', optimize=True)
         files[name] = buf.getvalue()
 
     files['site.webmanifest'] = json.dumps({
         'icons': [
             {'src': '/android-chrome-192x192.png', 'sizes': '192x192', 'type': 'image/png'},
             {'src': '/android-chrome-512x512.png', 'sizes': '512x512', 'type': 'image/png'},
+            {'src': '/maskable-icon-192x192.png', 'sizes': '192x192', 'type': 'image/png', 'purpose': 'maskable'},
+            {'src': '/maskable-icon-512x512.png', 'sizes': '512x512', 'type': 'image/png', 'purpose': 'maskable'},
         ],
         'display': 'standalone',
     }, indent=2).encode('utf-8')
+    files['browserconfig.xml'] = BROWSERCONFIG_XML.encode('utf-8')
     files['icons.html'] = ICON_HTML_SNIPPET.encode('utf-8')
     return files
 
 
-ICON_HTML_SNIPPET = """<link rel="icon" href="/favicon.ico" sizes="48x48">
+BROWSERCONFIG_XML = """<?xml version="1.0" encoding="utf-8"?>
+<browserconfig>
+  <msapplication>
+    <tile>
+      <square150x150logo src="/mstile-150x150.png"/>
+      <TileColor>#ffffff</TileColor>
+    </tile>
+  </msapplication>
+</browserconfig>
+"""
+
+ICON_HTML_SNIPPET = """<link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
+<meta name="msapplication-TileColor" content="#ffffff">
+<meta name="msapplication-config" content="/browserconfig.xml">
+<!-- app-store-icon-1024x1024.png is for App Store / Play Store listings, not for the page -->
 """
 
 
