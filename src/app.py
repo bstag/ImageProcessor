@@ -161,10 +161,8 @@ def main():
         )
     elif resize_type == "Fixed Dimensions":
         col1, col2 = st.sidebar.columns(2)
-        with col1:
-            width = st.sidebar.number_input("Width (px)", min_value=1, max_value=ImageProcessor.MAX_IMAGE_DIMENSION, value=800, help="Target width in pixels.")
-        with col2:
-            height = st.sidebar.number_input("Height (px)", min_value=1, max_value=ImageProcessor.MAX_IMAGE_DIMENSION, value=600, help="Target height in pixels.")
+        width = col1.number_input("Width (px)", min_value=1, max_value=ImageProcessor.MAX_IMAGE_DIMENSION, value=800, help="Target width in pixels.")
+        height = col2.number_input("Height (px)", min_value=1, max_value=ImageProcessor.MAX_IMAGE_DIMENSION, value=600, help="Target height in pixels.")
         maintain_aspect = st.sidebar.checkbox(
             "Maintain Aspect Ratio",
             value=True,
@@ -491,7 +489,9 @@ def main():
             savings = (1 - proc_size / orig_size) * 100 if orig_size > 0 else 0
             rounded_savings = round(savings, 1)
 
-            label_text = f"{safe_name} ({format_bytes(orig_size)} → {format_bytes(proc_size)})"
+            # Expander and button labels render Markdown, so escape the user-supplied name there
+            md_name = escape_markdown(safe_name)
+            label_text = f"{md_name} ({format_bytes(orig_size)} → {format_bytes(proc_size)})"
             if rounded_savings != 0:
                 icon = "⬇" if rounded_savings > 0 else "⬆"
                 label_text += f" {icon} {abs(rounded_savings):.1f}%"
@@ -530,11 +530,12 @@ def main():
                         st.image(item['data'], caption=f"Processed ({format_bytes(item['processed_size'])})")
                 
                 item_format = item.get('output_format', output_format).lower()
+                mime_subtype = "svg+xml" if item_format == "svg" else item_format
                 st.download_button(
-                    label=f"Download {safe_name}",
+                    label=f"Download {md_name}",
                     data=item['data'],
                     file_name=f"processed_{name_stem}.{item_format}",
-                    mime=f"image/{item_format}",
+                    mime=f"image/{mime_subtype}",
                     icon=":material/download:",
                     help=f"Download {safe_name}"
                 )

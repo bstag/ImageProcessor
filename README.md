@@ -114,7 +114,7 @@ This application is ready to be deployed on [Streamlit Cloud](https://streamlit.
 
 4.  **Deploy**:
     *   Click **"Deploy!"**.
-    *   Streamlit will automatically detect `requirements.txt` and install the necessary libraries (`pillow`, `pillow-avif-plugin`, etc.).
+    *   Streamlit will automatically detect `requirements.txt` and install the necessary libraries (`pillow`, `pillow-heif`, etc.).
 
 5.  **Done!**:
     Your app is now live on a public URL.

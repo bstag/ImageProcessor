@@ -1,5 +1,5 @@
 from processor import ImageProcessor
-from PIL import Image, UnidentifiedImageError
+from PIL import Image, ImageOps, UnidentifiedImageError
 import io
 from typing import Dict, Any, Union
 from logging_config import setup_logging
@@ -53,13 +53,20 @@ def process_image_task(file_content: bytes, config: Dict[str, Any]) -> Dict[str,
         
         logger.info(f"Processing image: Size={original_size} bytes, Dimensions={original_dimensions}")
 
+        # Apply the camera's EXIF orientation so phone photos aren't sideways
+        # (especially once metadata stripping removes the orientation tag).
+        ImageOps.exif_transpose(image, in_place=True)
+
+        # Check transparency - Check on original image
+        original_has_transparency = ImageProcessor.has_transparency(image)
+
+        # Convert palette/16-bit/CMYK/etc. to a mode every later step supports
+        image = ImageProcessor.normalize_mode(image)
+
         # Extract Dominant Colors (if requested) - Calculate on original image
         dominant_colors = []
         if config.get('extract_colors', False):
             dominant_colors = ImageProcessor.get_dominant_colors(image, 5)
-
-        # Check transparency - Check on original image
-        original_has_transparency = ImageProcessor.has_transparency(image)
 
         # Process
         # Bolt Optimization: Move Transform, Crop, and Resize BEFORE pixel-wise operations
@@ -79,17 +86,13 @@ def process_image_task(file_content: bytes, config: Dict[str, Any]) -> Dict[str,
         crop_mode = config.get('crop_mode', 'None')
         if crop_mode != "None":
             if crop_mode == "Custom Box":
+                # Each value is the number of pixels to trim from that edge (as the UI describes).
+                # Clamp so at least a 1x1 region always remains.
                 iw, ih = image.size
-                l = max(0, min(iw, int(config.get('crop_left', 0))))
-                t = max(0, min(ih, int(config.get('crop_top', 0))))
-                r_in = int(config.get('crop_right', 0))
-                b_in = int(config.get('crop_bottom', 0))
-                # Logic from app.py: r_in if > 0 else iw
-                r_in = r_in if r_in > 0 else iw
-                b_in = b_in if b_in > 0 else ih
-
-                r = max(l + 1, min(iw, r_in))
-                b = max(t + 1, min(ih, b_in))
+                l = max(0, min(iw - 1, int(config.get('crop_left', 0))))
+                t = max(0, min(ih - 1, int(config.get('crop_top', 0))))
+                r = max(l + 1, iw - max(0, int(config.get('crop_right', 0))))
+                b = max(t + 1, ih - max(0, int(config.get('crop_bottom', 0))))
                 image = ImageProcessor.crop_image(image, l, t, r, b)
             elif crop_mode == "Aspect Center":
                 image = ImageProcessor.center_crop_to_aspect(

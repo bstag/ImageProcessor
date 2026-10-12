@@ -1,6 +1,5 @@
-from PIL import Image, ImageOps, ImageEnhance, ImageFilter, ImageChops, ImageFilter, ImageDraw, ImageFont
+from PIL import Image, ImageOps, ImageEnhance, ImageFilter, ImageChops, ImageDraw, ImageFont
 import io
-import pillow_avif
 import pillow_heif
 from typing import List, Tuple, Optional, Union, Dict, Any
 
@@ -13,6 +12,37 @@ Image.MAX_IMAGE_PIXELS = 6000 ** 2
 class ImageProcessor:
     # Reduced from 10000 to 6000 to prevent DoS via memory exhaustion (Pixel Flood)
     MAX_IMAGE_DIMENSION = 6000
+
+    # Modes each output format can write directly; anything else is converted before saving.
+    SAVEABLE_MODES = {
+        'JPEG': {'RGB', 'L', 'CMYK'},
+        'BMP': {'1', 'L', 'P', 'RGB'},
+        # 'I' is omitted: Pillow 13 drops support for saving 32-bit 'I' images as PNG.
+        'PNG': {'1', 'L', 'LA', 'P', 'RGB', 'RGBA', 'I;16'},
+    }
+
+    @staticmethod
+    def normalize_mode(image: Image.Image) -> Image.Image:
+        """
+        Convert uncommon modes (palette, 1-bit, 16-bit, CMYK, ...) to L/LA/RGB/RGBA so every
+        enhancement, filter and encoder in the pipeline can handle the image.
+        """
+        if image.mode in ('RGB', 'RGBA', 'L', 'LA'):
+            return image
+        if image.mode in ('P', 'PA'):
+            return image.convert('RGBA' if ImageProcessor.has_transparency(image) else 'RGB')
+        if image.mode == '1':
+            return image.convert('L')
+        if image.mode.startswith('I'):
+            # 16/32-bit grayscale: a plain convert('L') clips everything above 255 to white,
+            # so scale down to 8 bits when the data actually uses the wider range.
+            _, hi = image.getextrema()
+            if hi > 255:
+                return image.convert('I').point(lambda v: v * (1 / 256)).convert('L')
+            return image.convert('L')
+        if image.mode == 'F':
+            return image.convert('L')
+        return image.convert('RGB')
 
     @staticmethod
     def center_crop_to_aspect(image: Image.Image, target_w: int, target_h: int) -> Image.Image:
@@ -175,7 +205,9 @@ class ImageProcessor:
     def apply_filter(image: Image.Image, filter_name: str) -> Image.Image:
         """
         Applies a predefined filter to the image.
+        Accepts either constant-style ("EDGE_ENHANCE") or UI-style ("Edge Enhance") names.
         """
+        filter_name = filter_name.upper().replace(" ", "_")
         if filter_name == "BLUR":
             return image.filter(ImageFilter.BLUR)
         elif filter_name == "CONTOUR":
@@ -395,10 +427,19 @@ class ImageProcessor:
         """
         Process the image (conversion, compression) and return the bytes.
         """
-        # Convert to RGB if saving to formats that don't support RGBA (like JPEG)
-        if output_format.upper() in ['JPEG', 'JPG', 'BMP'] and image.mode == 'RGBA':
-            image = image.convert('RGB')
-        
+        fmt = 'JPEG' if output_format.upper() == 'JPG' else output_format.upper()
+        allowed_modes = ImageProcessor.SAVEABLE_MODES.get(fmt)
+        if allowed_modes is not None and image.mode not in allowed_modes:
+            image = ImageProcessor.normalize_mode(image)
+            if image.mode in ('RGBA', 'LA') and image.mode not in allowed_modes:
+                # Flatten transparency onto white instead of exposing whatever color
+                # happens to sit under fully transparent pixels.
+                base_mode = image.mode[0] if image.mode == 'LA' else 'RGB'
+                background = Image.new(base_mode, image.size, 255 if base_mode == 'L' else (255, 255, 255))
+                background.paste(image.convert(base_mode), mask=image.getchannel('A'))
+                background.info = dict(image.info)
+                image = background
+
         output = io.BytesIO()
         
         save_args = {
