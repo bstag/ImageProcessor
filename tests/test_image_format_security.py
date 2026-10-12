@@ -18,17 +18,17 @@ class TestImageFormatSecurity(unittest.TestCase):
         self.assertTrue(result['success'], f"Valid PNG should be processed. Error: {result.get('error')}")
 
     def test_blocked_format(self):
-        """Test that a blocked format (GIF) is rejected directly by Image.open restricted formats."""
+        """Test that a blocked format (PPM) is rejected directly by Image.open restricted formats."""
         img = Image.new('RGB', (10, 10), color='red')
         img_byte_arr = io.BytesIO()
-        img.save(img_byte_arr, format='GIF')
+        img.save(img_byte_arr, format='PPM')
         file_content = img_byte_arr.getvalue()
 
         config = {'output_format': 'PNG'}
 
         result = process_image_task(file_content, config)
 
-        self.assertFalse(result['success'], "Blocked format (GIF) should fail")
+        self.assertFalse(result['success'], "Blocked format (PPM) should fail")
         # Since Image.open catches it, it raises UnidentifiedImageError which returns standard invalid msg
         self.assertEqual("Invalid or corrupt image file.", result['error'])
 

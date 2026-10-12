@@ -531,3 +531,123 @@ class ImageProcessor:
                 image.info.update(original_info)
         output.seek(0)
         return output
+
+    # Formats where a quality setting changes the file size
+    LOSSY_FORMATS = ('JPEG', 'WEBP', 'AVIF')
+
+    @staticmethod
+    def encode_to_target_size(image: Image.Image, output_format: str, target_bytes: int, max_quality: int = 95,
+                              min_quality: int = 5, **save_kwargs: Any) -> Tuple[io.BytesIO, int, bool]:
+        """
+        Binary-search the highest quality whose encoded size fits within target_bytes.
+        Returns (output, quality_used, target_met). If even min_quality is too large,
+        the min_quality encoding is returned with target_met=False.
+        """
+        best = None
+        lo, hi = min_quality, max(min_quality, max_quality)
+        smallest = None
+        while lo <= hi:
+            quality = (lo + hi) // 2
+            output = ImageProcessor.process_and_save(image, output_format, quality=quality, **save_kwargs)
+            size = output.getbuffer().nbytes
+            if size <= target_bytes:
+                best = (output, quality)
+                lo = quality + 1
+            else:
+                if smallest is None or quality < smallest[1]:
+                    smallest = (output, quality)
+                hi = quality - 1
+        if best is not None:
+            return best[0], best[1], True
+        if smallest is None or smallest[1] != min_quality:
+            smallest = (ImageProcessor.process_and_save(image, output_format, quality=min_quality, **save_kwargs), min_quality)
+        return smallest[0], smallest[1], False
+
+    COMPARISON_FORMATS = ('WEBP', 'AVIF', 'JPEG', 'PNG')
+
+    @staticmethod
+    def compare_formats(image: Image.Image, quality: int = 80, **save_kwargs: Any) -> Dict[str, int]:
+        """Encode the image in each comparison format and return the resulting sizes in bytes."""
+        return {
+            fmt: ImageProcessor.process_and_save(image, fmt, quality=quality, **save_kwargs).getbuffer().nbytes
+            for fmt in ImageProcessor.COMPARISON_FORMATS
+        }
+
+    @staticmethod
+    def extract_metadata(image: Image.Image) -> Dict[str, Any]:
+        """
+        Summarize privacy-relevant metadata (camera, date, software, author, GPS) from an image.
+        Values come from the uploaded file, so they are cleaned and length-limited.
+        """
+        from PIL import ExifTags
+
+        def clean(value: Any) -> str:
+            if isinstance(value, bytes):
+                value = value.decode('utf-8', errors='replace')
+            text = ''.join(ch for ch in str(value) if ch.isprintable()).strip().strip('\x00')
+            return text[:100]
+
+        try:
+            exif = image.getexif()
+        except Exception:
+            return {'fields': {}, 'has_gps': False}
+
+        exif_ifd = exif.get_ifd(ExifTags.IFD.Exif)
+        tags = ExifTags.Base
+        fields = {}
+        camera = ' '.join(clean(exif[t]) for t in (tags.Make, tags.Model) if exif.get(t))
+        if camera:
+            fields['Camera'] = camera
+        if exif_ifd.get(tags.LensModel):
+            fields['Lens'] = clean(exif_ifd[tags.LensModel])
+        taken = exif_ifd.get(tags.DateTimeOriginal) or exif.get(tags.DateTime)
+        if taken:
+            fields['Taken'] = clean(taken)
+        for label, tag in (('Software', tags.Software), ('Artist', tags.Artist), ('Copyright', tags.Copyright)):
+            if exif.get(tag):
+                fields[label] = clean(exif[tag])
+
+        gps = exif.get_ifd(ExifTags.IFD.GPSInfo)
+        has_gps = bool(gps.get(ExifTags.GPS.GPSLatitude) and gps.get(ExifTags.GPS.GPSLongitude))
+        if has_gps:
+            fields['GPS location'] = 'Present'
+        return {'fields': {k: v for k, v in fields.items() if v}, 'has_gps': has_gps}
+
+    @staticmethod
+    def fit_to_size(image: Image.Image, size: Tuple[int, int], method: str = 'crop',
+                    pad_color: Tuple[int, int, int] = (255, 255, 255)) -> Image.Image:
+        """
+        Produce an image of exactly `size`: 'crop' fills the frame and trims the overflow,
+        'pad' fits the whole image and fills the remaining space with pad_color.
+        """
+        if method == 'pad':
+            if image.mode in ('L', 'LA'):
+                r, g, b = pad_color
+                gray = round(0.299 * r + 0.587 * g + 0.114 * b)
+                color = gray if image.mode == 'L' else (gray, 255)
+            elif image.mode == 'RGBA':
+                color = (*pad_color, 255)
+            else:
+                color = pad_color
+            return ImageOps.pad(image, size, Image.Resampling.LANCZOS, color=color)
+        return ImageOps.fit(image, size, Image.Resampling.LANCZOS)
+
+    # Output formats that can store an animation (PNG is written as APNG)
+    ANIMATED_FORMATS = ('WEBP', 'AVIF', 'PNG')
+
+    @staticmethod
+    def save_animation(frames: List[Image.Image], durations: List[int], output_format: str, quality: int = 85,
+                       lossless: bool = False, loop: int = 0) -> io.BytesIO:
+        """Encode a list of frames as an animated WEBP, AVIF or PNG (APNG)."""
+        fmt = output_format.upper()
+        if fmt not in ImageProcessor.ANIMATED_FORMATS:
+            raise ValueError(f"{output_format} cannot store animations")
+        frames = [f if f.mode in ('RGB', 'RGBA') else f.convert('RGBA') for f in frames]
+        save_args: Dict[str, Any] = {'format': fmt, 'save_all': True, 'append_images': frames[1:],
+                                     'duration': durations, 'loop': loop}
+        if fmt in ('WEBP', 'AVIF'):
+            save_args.update(quality=quality, lossless=lossless)
+        output = io.BytesIO()
+        frames[0].save(output, **save_args)
+        output.seek(0)
+        return output

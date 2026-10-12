@@ -4,37 +4,47 @@ A powerful, user-friendly web application built with **Streamlit** and **Pillow 
 
 ## 🌟 Features
 
-### 1. Image Rescaling
-*   **Modes**:
-    *   **Percentage**: Scale images by a percentage (1% - 200%).
-    *   **Fixed Dimensions**: Resize to specific width/height pixels.
-*   **Smart Resizing**: Option to lock aspect ratio to prevent distortion.
-    *   **Auto-Detection**: Automatically calculates aspect ratio from the first uploaded image.
-    *   **Bi-directional Updates**: Changing width updates height (and vice-versa) to maintain the ratio.
+### 1. One-Click Presets
+*   **Web**, **Email**, **Social Media** and **Thumbnail** presets set format, quality, maximum size and metadata stripping in one click.
+*   Change any of those settings afterwards and the preset switches back to **Custom**.
+
+### 2. Resizing
+*   **Fit Within (shrink only)**: Cap images to a maximum width/height without ever enlarging small ones.
+*   **Percentage**: Scale images by a percentage (1% - 200%).
+*   **Fixed Dimensions**: Resize to a specific width/height, scaling up or down, with an option to keep the aspect ratio.
 *   **High Quality**: Uses Lanczos resampling for the best possible quality.
 
-### 2. Advanced Web Optimization
-*   **Input Support**: Seamlessly handles **HEIC/HEIF** files (common on iOS) in addition to standard formats.
+### 3. Advanced Web Optimization
+*   **Input Support**: PNG, JPEG, WebP, AVIF, BMP, **HEIC/HEIF** (common on iOS) and **GIF**.
 *   **Modern Output Formats**: Convert images to **WebP**, **AVIF**, **SVG** (Vector), JPEG, PNG, and BMP.
+*   **Animated GIFs**: Converted to animated **WebP**, **AVIF** or **PNG (APNG)** with every edit applied to each frame, usually at a fraction of the GIF's size.
+*   **Target File Size**: Set a maximum size per image (e.g. 200 KB) and the highest quality that fits is chosen automatically (JPEG, WebP, AVIF).
+*   **Format Comparison**: See each result's size as WebP, AVIF, JPEG and PNG side by side.
 *   **Compression Control**:
     *   Adjustable **Quality Slider** (0-100).
     *   **Lossless Mode** for WebP and AVIF.
     *   **Vectorization Settings** for SVG (Color Mode, Layering, Smoothing, etc.).
-*   **Metadata Stripping**: Automatically removes EXIF data to reduce file size.
+*   **Metadata Stripping**: Removes EXIF data (camera, location, etc.) while keeping the color profile so colors stay accurate.
+*   **Metadata Viewer**: Shows what each photo contained (camera, lens, date, software, author) and warns when it has GPS location data.
 
-### 3. Built-in Image Editor
+### 4. Built-in Image Editor
 *   **Enhancements**: Adjust Brightness, Contrast, Saturation, and Sharpness.
-*   **Transforms**: Rotate (90° steps), Flip Horizontal/Vertical.
-*   **Cropping**: Custom box crop or aspect-ratio based center crop.
+*   **Transforms**: Rotate (90° steps), Flip Horizontal/Vertical. Phone photos are automatically rotated upright using their EXIF orientation.
+*   **Cropping**: Trim pixels from each edge, center crop to an aspect ratio, or use a **Social Preset** (1:1, 4:5, 16:9, 9:16 stories, 1200×630 link previews) that crops to fill or pads to fit.
 *   **Transparency**:
     *   **Detection**: Automatically detects if uploaded images contain transparency.
     *   **Color Replacement**: Replace a specific solid color (e.g., white background) with transparency using adjustable tolerance.
 *   **Filters**: Apply creative presets including **Blur**, **Contour**, **Detail**, **Edge Enhance**, **Emboss**, **Sharpen**, and **Smooth**, plus Grayscale conversion.
 *   **Watermarking**: Add custom text watermarks with adjustable size, opacity, color, and automatic bottom-right positioning.
-*   **Color Analysis**: Automatically extracts the top 5 dominant colors from the image, displayed as a palette with HEX codes.
-*   *Note: All edits are applied before resizing to ensure maximum output quality.*
+*   **Color Analysis**: Extracts the top 5 dominant colors (ignoring transparent areas), plus an optional RGB histogram.
+*   *Note: Crop and resize run before the pixel-level edits so those edits process fewer pixels.*
 
-### 4. Workflow & Interface
+### 5. Export Extras
+*   **Responsive Image Sets**: Export smaller copies at 320–1920px widths plus a ready-to-paste `<img srcset>` snippet (`srcset.html`).
+*   **Favicon & App Icons**: `favicon.ico` (16/32/48), PNG favicons, Apple touch icon, Android/PWA icons, `site.webmanifest` and the HTML `<link>` tags.
+*   **Combine into PDF**: Every processed image on its own page of one PDF.
+
+### 6. Workflow & Interface
 *   **Batch Processing**: Drag & drop multiple images at once.
 *   **High Performance**:
     *   **Parallel Processing**: Uses multi-threaded parallel processing for fast batch conversions.
@@ -44,9 +54,9 @@ A powerful, user-friendly web application built with **Streamlit** and **Pillow 
 *   **Persistence**: Processed results stay available during downloads (won't disappear on click).
 *   **Notifications**: Non-intrusive toast notifications for status updates.
 *   **Security & Safety**:
-    *   **Input Validation**: Enforces limits on file count (50), total size (200MB), and image dimensions (10k px) to prevent resource exhaustion.
+    *   **Input Validation**: Enforces limits on file count (50), total size (200MB), image dimensions (6000px), animation size (300 frames) and SVG tracing size to prevent resource exhaustion.
     *   **Sanitization**: Automatically sanitizes filenames to prevent path traversal issues during export.
-*   **Export**: Download individual files or get everything in a single **ZIP archive**.
+*   **Export**: Download individual files or get everything (including responsive sizes, icons and the PDF) in a single **ZIP archive**.
 
 ---
 
