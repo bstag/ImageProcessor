@@ -5,7 +5,7 @@ import zipfile
 import os
 import html
 from processor import ImageProcessor
-from utils import format_bytes, get_unique_filename, get_safe_filename_stem, validate_upload_constraints, sanitize_filename
+from utils import format_bytes, get_unique_filename, get_safe_filename_stem, validate_upload_constraints, sanitize_filename, escape_markdown
 from tasks import process_image_task
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -40,10 +40,19 @@ def main():
 
     # Output Format
     st.sidebar.subheader("Output Format")
+    format_descriptions = {
+        "WEBP": "WEBP (Web Optimized)",
+        "AVIF": "AVIF (Next-Gen Compression)",
+        "JPEG": "JPEG (Standard)",
+        "PNG": "PNG (Lossless)",
+        "BMP": "BMP (Uncompressed)",
+        "SVG": "SVG (Vectorize)"
+    }
     output_format = st.sidebar.selectbox(
         "Format",
         ["WEBP", "AVIF", "JPEG", "PNG", "BMP", "SVG"],
         index=0,
+        format_func=lambda x: format_descriptions.get(x, x),
         help="Select the file format for the processed images. WebP and AVIF offer better compression. SVG converts to vector."
     )
 
@@ -132,6 +141,7 @@ def main():
     resize_type = st.sidebar.selectbox(
         "Resize Mode",
         ["None", "Percentage", "Fixed Dimensions"],
+        format_func=lambda x: "Do Not Resize" if x == "None" else x,
         help="Choose how to resize the image."
     )
 
@@ -170,7 +180,13 @@ def main():
         contrast = st.slider("Contrast", 0.0, 2.0, 1.0, 0.1, help="Adjust the contrast of the image.", format="%.1fx")
         saturation = st.slider("Saturation", 0.0, 2.0, 1.0, 0.1, help="Adjust the color intensity.", format="%.1fx")
         sharpness = st.slider("Sharpness", 0.0, 3.0, 1.0, 0.1, help="Adjust the sharpness of edges.", format="%.1fx")
-        filter_type = st.selectbox("Filter", ["None", "Blur", "Contour", "Detail", "Edge Enhance", "Emboss", "Sharpen", "Smooth"], index=0, help="Apply an image filter.")
+        filter_type = st.selectbox(
+            "Filter",
+            ["None", "Blur", "Contour", "Detail", "Edge Enhance", "Emboss", "Sharpen", "Smooth"],
+            index=0,
+            format_func=lambda x: "No Filter" if x == "None" else x,
+            help="Apply an image filter."
+        )
 
     with st.sidebar.expander("Transforms", icon=":material/transform:"):
         rotate = st.selectbox("Rotate", [0, 90, 180, 270], format_func=lambda x: f"{x}°", help="Rotate the image clockwise.")
@@ -182,7 +198,12 @@ def main():
         grayscale = st.checkbox("Convert to Grayscale", help="Convert the image to black and white.")
 
     with st.sidebar.expander("Crop", icon=":material/crop:"):
-        crop_mode = st.selectbox("Crop Mode", ["None", "Custom Box", "Aspect Center"], help="Choose a cropping strategy.")
+        crop_mode = st.selectbox(
+            "Crop Mode",
+            ["None", "Custom Box", "Aspect Center"],
+            format_func=lambda x: "Do Not Crop" if x == "None" else x,
+            help="Choose a cropping strategy."
+        )
         
         # Initialize crop variables with defaults (similar pattern to resize variables at lines 69-72)
         crop_left = 0
@@ -381,8 +402,10 @@ def main():
                                 "output_format": config['output_format']
                             })
                         else:
+                            # Security: Escape filename to prevent Markdown injection in st.error
+                            safe_name = escape_markdown(sanitize_filename(name))
                             st.error(
-                                f"Error processing file '{name}' "
+                                f"Error processing file '{safe_name}' "
                                 f"(size: {format_bytes(original_bytes_size)}, "
                                 f"output format: {config.get('output_format', 'original')}): "
                                 f"{result['error']}"
@@ -395,12 +418,19 @@ def main():
                 if processed_images:
                     zip_buffer = io.BytesIO()
                     with zipfile.ZipFile(zip_buffer, "w") as zf:
+                        # Track entry names so duplicate uploads don't produce colliding ZIP entries
+                        seen_filenames = set()
                         for item in processed_images:
                             # Security: Sanitize filename to prevent zip slip/path traversal
                             name_stem = get_safe_filename_stem(item['name'])
                             # Use config['output_format'] to ensure extension matches content
                             ext = config.get('output_format', 'JPEG').lower()
                             file_name = f"processed_{name_stem}.{ext}"
+                            counter = 1
+                            while file_name in seen_filenames:
+                                file_name = f"processed_{name_stem}_{counter}.{ext}"
+                                counter += 1
+                            seen_filenames.add(file_name)
                             zf.writestr(file_name, item['data'])
 
                     st.session_state.zip_data = zip_buffer.getvalue()
@@ -480,7 +510,7 @@ def main():
 
                 if item.get("histogram_data"):
                     st.markdown("**RGB Histogram:**")
-                    st.line_chart(item["histogram_data"])
+                    st.line_chart(item["histogram_data"], color=["#FF0000", "#00FF00", "#0000FF"])
 
                 col1, col2 = st.columns(2)
                 with col1:

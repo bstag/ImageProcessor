@@ -30,3 +30,13 @@
 **Vulnerability:** A vulnerability existed where Windows-specific malicious paths (like `C:malicious.jpeg` or Alternate Data Streams like `file.jpg:hidden`) could bypass basic `os.path.basename` sanitization and be written into ZIP archives or the filesystem.
 **Learning:** `os.path.basename` does not fully strip all OS-specific dangerous characters on all platforms (e.g. it won't strip `:` on Unix when processing a Windows-style path). A strict allowlist regex (like `[^a-zA-Z0-9_\-\. ]`) is too aggressive and breaks internationalized filenames (like `résumé.pdf` or `你好.jpg`).
 **Prevention:** Use a targeted exclusion regex (e.g., `re.sub(r'[:*?"<>|]', '_', safe_name)`) *after* `os.path.basename` to explicitly strip specific illegal OS characters without breaking non-ASCII unicode filenames.
+
+## 2025-10-27 - Streamlit UI Injection (Markdown)
+**Vulnerability:** Filenames were being rendered directly in `st.error()` without sanitization. Streamlit natively parses Markdown in many of its text elements (including `st.error`, `st.warning`, etc.). If an attacker uploads a file with a name containing Markdown (e.g., `[Click Here](http://phishing.com)`), they can inject malicious links or UI elements (UI redressing) directly into the application's interface.
+**Learning:** Functions that render text in modern UI frameworks (like Streamlit's `st.error`, `st.markdown`, `st.success`) often parse Markdown or HTML by default. Passing unsanitized user input (like filenames) into these functions introduces an injection vulnerability.
+**Prevention:** Always sanitize user-provided data (e.g., using `html.escape` or custom sanitizers like `sanitize_filename`) before displaying it in UI elements that parse Markdown or HTML.
+
+## 2025-10-27 - ZIP Entry Collision and Overwrite
+**Vulnerability:** When multiple files with the same original filename (or names that sanitize to the same stem) were processed and added to a ZIP archive, `zipfile.writestr` faithfully wrote them using the exact same entry name. This creates a malformed ZIP with duplicate entries, leading to data loss (files overwrite each other during extraction) or causing some ZIP extraction utilities to fail or hang.
+**Learning:** The Python `zipfile` module does not automatically enforce unique filenames for entries within the archive. It will write duplicate paths if instructed to do so.
+**Prevention:** Always track `seen_filenames` (e.g., using a set or dictionary) when generating ZIP archives from user uploads. If a collision is detected, automatically increment a counter and append it to the filename to guarantee uniqueness before calling `zipfile.writestr`.

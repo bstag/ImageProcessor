@@ -6,7 +6,7 @@ from unittest.mock import patch
 # Add src to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
-from utils import format_bytes, get_unique_filename, get_file_info
+from utils import format_bytes, get_unique_filename, get_file_info, escape_markdown
 
 class TestUtils(unittest.TestCase):
     
@@ -68,6 +68,10 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(info['name'], "test_image.jpg")
         self.assertEqual(info['size_bytes'], 2048)
         self.assertEqual(info['size_formatted'], "2.00 KB")
+
+    def test_escape_markdown(self):
+        self.assertEqual(escape_markdown('[x](http://e.com).png'), r'\[x\]\(http://e\.com\)\.png')
+        self.assertEqual(escape_markdown('photo 1.jpg'), r'photo 1\.jpg')
 
 if __name__ == '__main__':
     unittest.main()
