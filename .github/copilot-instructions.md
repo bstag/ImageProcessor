@@ -4,9 +4,9 @@
 ImageProcessor is a powerful, user-friendly web application built with **Streamlit** and **Pillow (PIL)** for batch image processing, editing, and web optimization. The application supports various image formats including WebP, AVIF, JPEG, PNG, BMP, and HEIF.
 
 ## Technology Stack
-- **Language**: Python 3.x
+- **Language**: Python 3.10+
 - **Web Framework**: Streamlit
-- **Image Processing**: Pillow (PIL), pillow-avif-plugin, pillow-heif
+- **Image Processing**: Pillow (PIL) with built-in AVIF support, pillow-heif
 - **Testing**: Python unittest framework
 
 ## Project Structure
