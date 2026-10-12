@@ -1,4 +1,5 @@
 import os
+import posixpath
 import re
 import uuid
 from typing import List, Tuple, Union, IO, Any
@@ -10,9 +11,9 @@ def sanitize_filename(filename: str) -> str:
     """
     # Remove null bytes
     filename = filename.replace('\0', '')
-    # Replace backslashes with forward slashes to ensure os.path.basename works
-    # even when running on Linux but processing a Windows path.
-    basename = os.path.basename(filename.replace("\\", "/"))
+    # Replace backslashes with forward slashes and use posixpath so results are
+    # identical on every OS (ntpath.basename would silently drop "C:" drive prefixes).
+    basename = posixpath.basename(filename.replace("\\", "/"))
     # Remove illegal cross-platform characters (Windows doesn't allow these)
     # Using an exclusion regex instead of strict ASCII allowlist to preserve international characters
     safe_name = re.sub(r'[:*?"<>|]', '_', basename)
@@ -62,7 +63,7 @@ def get_safe_filename_stem(filename: str) -> str:
 
     The input is first cleaned of null bytes and then reduced to its basename
     by replacing backslashes with forward slashes and then using
-    ``os.path.basename`` to avoid path traversal. If this basename is empty
+    ``posixpath.basename`` to avoid path traversal. If this basename is empty
     (for example, when ``filename`` is an empty string), or consists only of
     dots, a fallback name of ``"image"`` is used.
 
