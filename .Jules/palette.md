@@ -42,3 +42,6 @@
 ## 2024-07-24 - Discoverability of Conditionally Applicable Controls
 **Learning:** Radically hiding controls (like completely removing the 'Lossless Compression' checkbox or 'Transparency' color picker) when they don't apply to the current context creates jarring layout shifts and hurts discoverability. Users don't know the feature exists unless they randomly stumble upon the correct prerequisite state.
 **Action:** Use 'Error Prevention via Disabled States'. Render the controls unconditionally but set `disabled=True` and append an explanatory note to the `help` tooltip clarifying why it is disabled (e.g. 'Check XYZ to enable' or 'Not supported for format Y').
+## 2024-07-28 - Formatting Selectboxes for Clarity
+**Learning:** Raw string arrays in `st.selectbox` (like `["None", "WEBP", "AVIF"]`) can lack descriptive context or actionability for users. Streamlit's `st.selectbox` supports a `format_func` parameter that allows the displayed label to be modified (e.g., expanding "WEBP" to "WEBP (Web Optimized)" or "None" to "Do Not Crop") without changing the underlying value returned to the application logic. This is an extremely safe, zero-side-effect way to improve interface clarity.
+**Action:** Use `format_func` on selectboxes to translate technical terms or vague options ("None") into descriptive, user-friendly labels.
