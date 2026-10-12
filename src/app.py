@@ -5,7 +5,7 @@ import zipfile
 import os
 import html
 from processor import ImageProcessor
-from utils import format_bytes, get_unique_filename, get_safe_filename_stem, validate_upload_constraints, sanitize_filename
+from utils import format_bytes, get_unique_filename, get_safe_filename_stem, validate_upload_constraints, sanitize_filename, escape_markdown
 from tasks import process_image_task
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -402,8 +402,8 @@ def main():
                                 "output_format": config['output_format']
                             })
                         else:
-                            # Security: Sanitize filename to prevent Markdown injection/XSS in st.error
-                            safe_name = sanitize_filename(name)
+                            # Security: Escape filename to prevent Markdown injection in st.error
+                            safe_name = escape_markdown(sanitize_filename(name))
                             st.error(
                                 f"Error processing file '{safe_name}' "
                                 f"(size: {format_bytes(original_bytes_size)}, "
@@ -418,12 +418,19 @@ def main():
                 if processed_images:
                     zip_buffer = io.BytesIO()
                     with zipfile.ZipFile(zip_buffer, "w") as zf:
+                        # Track entry names so duplicate uploads don't produce colliding ZIP entries
+                        seen_filenames = set()
                         for item in processed_images:
                             # Security: Sanitize filename to prevent zip slip/path traversal
                             name_stem = get_safe_filename_stem(item['name'])
                             # Use config['output_format'] to ensure extension matches content
                             ext = config.get('output_format', 'JPEG').lower()
                             file_name = f"processed_{name_stem}.{ext}"
+                            counter = 1
+                            while file_name in seen_filenames:
+                                file_name = f"processed_{name_stem}_{counter}.{ext}"
+                                counter += 1
+                            seen_filenames.add(file_name)
                             zf.writestr(file_name, item['data'])
 
                     st.session_state.zip_data = zip_buffer.getvalue()

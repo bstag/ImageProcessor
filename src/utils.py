@@ -18,6 +18,13 @@ def sanitize_filename(filename: str) -> str:
     safe_name = re.sub(r'[:*?"<>|]', '_', basename)
     return safe_name
 
+def escape_markdown(text: str) -> str:
+    """
+    Escape Markdown control characters so user-supplied text (e.g. filenames)
+    renders literally in Streamlit elements that parse Markdown.
+    """
+    return re.sub(r'([\\`*_{}\[\]()<>#+\-.!|~$])', r'\\\1', text)
+
 def format_bytes(size: float) -> str:
     # 2**10 = 1024
     power = 2**10
