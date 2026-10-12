@@ -364,7 +364,7 @@ def main():
         )
         make_icons = st.checkbox(
             "Favicon & App Icons",
-            help="Create favicon.ico, PNG favicons, an Apple touch icon, Android/PWA icons and a web manifest from each image (made before any watermark)."
+            help="Create a full icon set from each image (made before any watermark): favicon.ico (16-256px), PNG favicons, Apple touch icon, Android/PWA icons including maskable versions, a Windows tile, a 1024px App Store icon, plus the manifest, browserconfig and HTML tags."
         )
         make_pdf = st.checkbox(
             "Combine into PDF",
@@ -775,7 +775,7 @@ def main():
                         mime="application/zip",
                         key=f"icons_{item_idx}",
                         icon=":material/apps:",
-                        help="favicon.ico, PNG favicons, Apple touch icon, Android/PWA icons, site.webmanifest and an HTML snippet."
+                        help="favicon.ico (16-256px), PNG favicons, Apple touch icon, Android/PWA and maskable icons, Windows tile, 1024px App Store icon, site.webmanifest, browserconfig.xml and an HTML snippet."
                     )
 
     if not uploaded_files and not st.session_state.processed_images:

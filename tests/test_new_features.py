@@ -175,17 +175,53 @@ def test_animation_frame_limit(monkeypatch):
 
 # --- Icon pack ----------------------------------------------------------------
 
+ICON_FILES = {
+    'favicon-16x16.png': 16, 'favicon-32x32.png': 32, 'mstile-150x150.png': 150, 'apple-touch-icon.png': 180,
+    'android-chrome-192x192.png': 192, 'android-chrome-512x512.png': 512,
+    'maskable-icon-192x192.png': 192, 'maskable-icon-512x512.png': 512, 'app-store-icon-1024x1024.png': 1024,
+}
+
+
 def test_icon_pack_contents_and_sizes():
     files = make_icon_pack(Image.new('RGBA', (300, 120), (0, 120, 255, 255)))
-    assert set(files) == {'favicon.ico', 'favicon-16x16.png', 'favicon-32x32.png', 'apple-touch-icon.png',
-                          'android-chrome-192x192.png', 'android-chrome-512x512.png', 'site.webmanifest', 'icons.html'}
-    assert sorted(decode(files['favicon.ico']).info['sizes']) == [(16, 16), (32, 32), (48, 48)]
-    for name, size in (('favicon-32x32.png', 32), ('apple-touch-icon.png', 180), ('android-chrome-512x512.png', 512)):
-        assert decode(files[name]).size == (size, size)
-    # Non-square input is padded, not cropped; the Apple icon has no transparency
+    assert set(files) == {'favicon.ico', 'site.webmanifest', 'browserconfig.xml', 'icons.html', *ICON_FILES}
+    assert sorted(decode(files['favicon.ico']).info['sizes']) == [(16, 16), (32, 32), (48, 48), (64, 64), (256, 256)]
+    for name, size in ICON_FILES.items():
+        assert decode(files[name]).size == (size, size), name
+    # Non-square input is padded, not cropped
     assert decode(files['android-chrome-512x512.png']).getpixel((256, 5))[3] == 0
-    assert decode(files['apple-touch-icon.png']).mode == 'RGB'
-    assert json.loads(files['site.webmanifest'])['icons'][1]['sizes'] == '512x512'
+    # Apple touch, App Store and maskable icons must not be transparent
+    for name in ('apple-touch-icon.png', 'app-store-icon-1024x1024.png', 'maskable-icon-512x512.png'):
+        assert decode(files[name]).mode == 'RGB', name
+
+
+def test_icon_pack_manifest_and_tile_config():
+    import xml.etree.ElementTree as ET
+    files = make_icon_pack(Image.new('RGBA', (64, 64), (0, 120, 255, 255)))
+    icons = json.loads(files['site.webmanifest'])['icons']
+    assert [i['src'] for i in icons if i.get('purpose') == 'maskable'] == [
+        '/maskable-icon-192x192.png', '/maskable-icon-512x512.png']
+    tile = ET.fromstring(files['browserconfig.xml']).find('msapplication/tile/square150x150logo')
+    assert tile.get('src') == '/mstile-150x150.png'
+    assert 'msapplication-config' in files['icons.html'].decode()
+
+
+def test_small_images_are_scaled_up_to_fill_icons():
+    files = make_icon_pack(Image.new('RGBA', (40, 40), (255, 0, 0, 255)))
+    big = decode(files['android-chrome-512x512.png'])
+    assert big.getpixel((2, 2)) == (255, 0, 0, 255)  # fills edge to edge, not a 40px dot in the middle
+
+
+def test_maskable_icon_keeps_corners_inside_safe_zone():
+    files = make_icon_pack(Image.new('RGBA', (300, 300), (255, 0, 0, 255)))
+    icon = decode(files['maskable-icon-512x512.png'])
+    # Bounding box of the red logo on the white background
+    red = icon.point(lambda v: 255 if v < 128 else 0).getchannel('G').getbbox()
+    left, top, right, bottom = red
+    centre, radius = 256, 0.40 * 512
+    for x, y in ((left, top), (right, top), (left, bottom), (right, bottom)):
+        assert ((x - centre) ** 2 + (y - centre) ** 2) ** 0.5 <= radius + 1
+    assert icon.getpixel((0, 0)) == (255, 255, 255)  # full-bleed opaque background
 
 
 def test_icons_are_made_before_watermark():
