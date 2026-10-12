@@ -16,6 +16,8 @@ class ImageLimitError(ValueError):
 class ImageProcessor:
     # Reduced from 10000 to 6000 to prevent DoS via memory exhaustion (Pixel Flood)
     MAX_IMAGE_DIMENSION = 6000
+    # Longest side traced when vectorizing; larger inputs are downscaled first
+    MAX_SVG_DIMENSION = 1500
 
     # Modes each output format can write directly; anything else is converted before saving.
     SAVEABLE_MODES = {
@@ -128,10 +130,19 @@ class ImageProcessor:
         # Bolt Optimization: Use NEAREST resampling for downscaling.
         # It's >300x faster than default (BICUBIC) and sufficient for dominant color extraction.
         small_image = image.resize((150, 150), resample=Image.Resampling.NEAREST)
-        # Ensure RGB mode for getpalette
-        if small_image.mode != 'RGB':
+
+        if ImageProcessor.has_transparency(small_image):
+            # Ignore (mostly) transparent pixels: their hidden RGB values aren't visible colors
+            rgba = small_image.convert('RGBA')
+            visible = [p[:3] for p in rgba.get_flattened_data() if p[3] >= 128]
+            if not visible:
+                return []
+            small_image = Image.new('RGB', (len(visible), 1))
+            small_image.putdata(visible)
+        elif small_image.mode != 'RGB':
+            # Ensure RGB mode for getpalette
             small_image = small_image.convert('RGB')
-            
+
         # Bolt Optimization: Use FASTOCTREE instead of default MEDIANCUT quantization
         # This achieves ~40x speedup for high-entropy images with negligible quality degradation
         # when extracting a small number of dominant colors.
@@ -139,12 +150,16 @@ class ImageProcessor:
         palette = result.getpalette()
         if not palette:
             return []
-            
-        # Limit to num_colors
-        palette = palette[:num_colors*3]
-        
-        # Convert to Hex
-        colors = [f'#{palette[i]:02x}{palette[i+1]:02x}{palette[i+2]:02x}' for i in range(0, len(palette), 3)]
+
+        # Only report palette entries actually used, most common first
+        # (the raw palette is padded with unused black entries).
+        colors = []
+        for _, index in sorted(result.getcolors(), reverse=True):
+            r, g, b = palette[index * 3:index * 3 + 3]
+            hex_color = f'#{r:02x}{g:02x}{b:02x}'
+            if hex_color not in colors:
+                colors.append(hex_color)
+        colors = colors[:num_colors]
         return colors
 
     @staticmethod
@@ -400,6 +415,15 @@ class ImageProcessor:
         """
         import vtracer
 
+        # Security/perf: tracing time and SVG size grow much faster than pixel count
+        # (1500x1500 detailed input already takes ~20s and yields ~35MB), so trace a
+        # downscaled copy and keep the original display size via a viewBox.
+        original_width, original_height = image.size
+        if max(image.size) > ImageProcessor.MAX_SVG_DIMENSION:
+            image = image.copy()
+            image.thumbnail((ImageProcessor.MAX_SVG_DIMENSION, ImageProcessor.MAX_SVG_DIMENSION), Image.Resampling.LANCZOS)
+        traced_width, traced_height = image.size
+
         # Bolt Optimization: Avoid slow disk I/O operations by saving the image to an in-memory
         # bytes buffer and passing it directly to vtracer instead of using temporary files.
         # Also explicitly apply compress_level=1 to reduce CPU overhead and encoding time significantly.
@@ -424,7 +448,14 @@ class ImageProcessor:
         }
 
         svg_content = vtracer.convert_raw_image_to_svg(raw_bytes, img_format='png', **params)
-            
+
+        if (traced_width, traced_height) != (original_width, original_height):
+            svg_content = svg_content.replace(
+                f'width="{traced_width}" height="{traced_height}"',
+                f'width="{original_width}" height="{original_height}" viewBox="0 0 {traced_width} {traced_height}"',
+                1,
+            )
+
         return svg_content
 
     @staticmethod
@@ -481,14 +512,15 @@ class ImageProcessor:
                  save_args['exif'] = b''
              # Keep the ICC color profile: it holds no personal data, and dropping it makes
              # wide-gamut photos (e.g. Display P3 from phones) render with shifted colors.
-             if 'icc_profile' in original_info and output_format.upper() in ['JPEG', 'JPG', 'WEBP', 'AVIF', 'PNG']:
+             # (pillow-heif stores missing metadata as None, so check for a value, not just the key)
+             if original_info.get('icc_profile') and output_format.upper() in ['JPEG', 'JPG', 'WEBP', 'AVIF', 'PNG']:
                  save_args['icc_profile'] = original_info['icc_profile']
         elif output_format.upper() in ['JPEG', 'JPG', 'WEBP', 'AVIF', 'HEIF', 'PNG']:
              # Preserve EXIF data if present and supported by format
-             if 'exif' in image.info:
+             if image.info.get('exif'):
                  save_args['exif'] = image.info['exif']
              # Also preserve ICC profile if present
-             if 'icc_profile' in image.info:
+             if image.info.get('icc_profile'):
                  save_args['icc_profile'] = image.info['icc_profile']
 
         try:

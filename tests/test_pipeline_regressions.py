@@ -120,3 +120,30 @@ def test_strip_metadata_keeps_icc_profile_but_drops_exif(fmt):
     out = decode(process_image_task(photo, {'output_format': fmt, 'strip_metadata': True})['data'])
     assert out.info.get('icc_profile') == icc
     assert 0x010F not in out.getexif()
+
+
+@pytest.mark.parametrize("fmt", ['JPEG', 'WEBP', 'PNG', 'AVIF'])
+def test_heic_with_metadata_kept_can_be_saved(fmt):
+    import pillow_heif  # noqa: F401  (registers the HEIF opener)
+    heic = encode(Image.effect_noise((32, 24), 60).convert('RGB'), 'HEIF')
+    result = process_image_task(heic, {'output_format': fmt, 'strip_metadata': False})
+    assert result['success'], result.get('error')
+
+
+def test_dominant_colors_ignore_transparent_pixels():
+    logo = Image.new('RGBA', (200, 200), (0, 0, 0, 0))
+    logo.paste((220, 20, 20, 255), (80, 80, 120, 120))
+    assert ImageProcessor.get_dominant_colors(logo, 5) == ['#dc1414']
+
+
+def test_dominant_colors_are_ordered_by_frequency():
+    img = Image.new('RGB', (100, 100), (255, 0, 0))
+    img.paste((0, 0, 255), (0, 0, 30, 30))
+    assert ImageProcessor.get_dominant_colors(img, 5) == ['#ff0000', '#0000ff']
+
+
+def test_large_svg_input_is_downscaled_but_keeps_display_size():
+    big = Image.new('RGB', (ImageProcessor.MAX_SVG_DIMENSION * 2, 100), (10, 120, 200))
+    svg = ImageProcessor.convert_to_svg(big)
+    assert f'width="{big.width}" height="100"' in svg
+    assert f'viewBox="0 0 {ImageProcessor.MAX_SVG_DIMENSION} 50"' in svg
