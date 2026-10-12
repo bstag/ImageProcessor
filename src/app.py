@@ -53,7 +53,7 @@ def main():
         ["WEBP", "AVIF", "JPEG", "PNG", "BMP", "SVG"],
         index=0,
         format_func=lambda x: format_descriptions.get(x, x),
-        help="Select the file format for the processed images. WebP and AVIF offer better compression. SVG converts to vector."
+        help=f"Select the file format for the processed images. WebP and AVIF offer better compression. SVG converts to vector (images larger than {ImageProcessor.MAX_SVG_DIMENSION}px are downscaled before tracing)."
     )
 
     lossless_disabled = output_format not in ["WEBP", "AVIF"]
