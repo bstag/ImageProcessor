@@ -9,6 +9,10 @@ pillow_heif.register_heif_opener()
 # Security: Align Pillow's global decompression bomb protection with our custom limit
 Image.MAX_IMAGE_PIXELS = 6000 ** 2
 
+class ImageLimitError(ValueError):
+    """Raised when a requested operation would exceed the app's size limits; safe to show to users."""
+    pass
+
 class ImageProcessor:
     # Reduced from 10000 to 6000 to prevent DoS via memory exhaustion (Pixel Flood)
     MAX_IMAGE_DIMENSION = 6000
@@ -293,13 +297,10 @@ class ImageProcessor:
             new_height = int(original_height * scale)
         elif width and height:
             if maintain_aspect_ratio:
-                # thumbnail modifies the image in-place to fit within the box, preserving aspect ratio.
-                # We need to verify that the target box itself isn't too large, though thumbnail won't exceed it.
-                if width > ImageProcessor.MAX_IMAGE_DIMENSION or height > ImageProcessor.MAX_IMAGE_DIMENSION:
-                     raise ValueError(f"Target dimensions exceed maximum allowed size ({ImageProcessor.MAX_IMAGE_DIMENSION}px)")
-
-                image.thumbnail((width, height), Image.Resampling.LANCZOS)
-                return image
+                # Fit inside the width x height box, scaling up or down as needed
+                scale = min(width / original_width, height / original_height)
+                new_width = round(original_width * scale)
+                new_height = round(original_height * scale)
             else:
                 new_width = width
                 new_height = height
@@ -314,9 +315,13 @@ class ImageProcessor:
                 ratio = height / original_height
                 new_width = int(original_width * ratio)
 
+        # Very small images scaled down can round to 0, which Pillow rejects
+        new_width = max(1, new_width)
+        new_height = max(1, new_height)
+
         # Validate dimensions before resizing
         if new_width > ImageProcessor.MAX_IMAGE_DIMENSION or new_height > ImageProcessor.MAX_IMAGE_DIMENSION:
-            raise ValueError(f"Resulting image dimensions ({new_width}x{new_height}) exceed maximum allowed size ({ImageProcessor.MAX_IMAGE_DIMENSION}px)")
+            raise ImageLimitError(f"Resulting image dimensions ({new_width}x{new_height}) exceed maximum allowed size ({ImageProcessor.MAX_IMAGE_DIMENSION}px)")
 
         # Bolt Optimization: When downscaling significantly, use reducing_gap=2.0
         # This performs a fast nearest-neighbor reduction by an integer factor before applying the high-quality Lanczos filter.
@@ -336,7 +341,7 @@ class ImageProcessor:
         """
         Checks if the image has transparency (alpha channel or transparency info).
         """
-        if image.mode in ('RGBA', 'LA') or (image.mode == 'P' and 'transparency' in image.info):
+        if image.mode in ('RGBA', 'LA', 'PA') or (image.mode == 'P' and 'transparency' in image.info):
             return True
         return False
 
@@ -474,6 +479,10 @@ class ImageProcessor:
              # Ensure EXIF is not written for formats that support EXIF
              if output_format.upper() in ['JPEG', 'JPG', 'WEBP', 'AVIF', 'HEIF']:
                  save_args['exif'] = b''
+             # Keep the ICC color profile: it holds no personal data, and dropping it makes
+             # wide-gamut photos (e.g. Display P3 from phones) render with shifted colors.
+             if 'icc_profile' in original_info and output_format.upper() in ['JPEG', 'JPG', 'WEBP', 'AVIF', 'PNG']:
+                 save_args['icc_profile'] = original_info['icc_profile']
         elif output_format.upper() in ['JPEG', 'JPG', 'WEBP', 'AVIF', 'HEIF', 'PNG']:
              # Preserve EXIF data if present and supported by format
              if 'exif' in image.info:

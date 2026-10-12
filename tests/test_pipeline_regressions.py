@@ -81,3 +81,42 @@ def test_transparency_flattens_to_white_for_jpeg():
     result = process_image_task(transparent, {'output_format': 'JPEG'})
     r, g, b = decode(result['data']).getpixel((5, 5))
     assert min(r, g, b) > 245
+
+
+def test_fixed_dimensions_with_aspect_scales_up():
+    small = encode(Image.new('RGB', (400, 300)))
+    config = {'output_format': 'PNG', 'resize_type': 'Fixed Dimensions',
+              'width': 800, 'height': 800, 'maintain_aspect': True}
+    assert decode(process_image_task(small, config)['data']).size == (800, 600)
+
+
+def test_tiny_percentage_resize_keeps_at_least_one_pixel():
+    config = {'output_format': 'PNG', 'resize_type': 'Percentage', 'percentage': 1}
+    result = process_image_task(encode(Image.new('RGB', (50, 50))), config)
+    assert result['success'], result.get('error')
+    assert decode(result['data']).size == (1, 1)
+
+
+def test_resize_limit_error_is_shown_to_user():
+    config = {'output_format': 'PNG', 'resize_type': 'Percentage', 'percentage': 200}
+    result = process_image_task(encode(Image.new('RGB', (4000, 10))), config)
+    assert not result['success']
+    assert "exceed maximum allowed size" in result['error']
+
+
+def test_palette_alpha_image_keeps_transparency():
+    pa = Image.new('RGBA', (8, 8), (255, 0, 0, 0)).convert('PA')
+    assert ImageProcessor.has_transparency(pa)
+    assert ImageProcessor.normalize_mode(pa).mode == 'RGBA'
+
+
+@pytest.mark.parametrize("fmt", ['JPEG', 'PNG', 'WEBP'])
+def test_strip_metadata_keeps_icc_profile_but_drops_exif(fmt):
+    from PIL import ImageCms
+    icc = ImageCms.ImageCmsProfile(ImageCms.createProfile('sRGB')).tobytes()
+    exif = Image.new('RGB', (1, 1)).getexif()
+    exif[0x010F] = "CameraMaker"
+    photo = encode(Image.new('RGB', (8, 8)), 'JPEG', icc_profile=icc, exif=exif)
+    out = decode(process_image_task(photo, {'output_format': fmt, 'strip_metadata': True})['data'])
+    assert out.info.get('icc_profile') == icc
+    assert 0x010F not in out.getexif()
