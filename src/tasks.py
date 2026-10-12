@@ -1,4 +1,4 @@
-from processor import ImageProcessor
+from processor import ImageProcessor, ImageLimitError
 from PIL import Image, ImageOps, UnidentifiedImageError
 import io
 from typing import Dict, Any, Union
@@ -194,7 +194,7 @@ def process_image_task(file_content: bytes, config: Dict[str, Any]) -> Dict[str,
             "dominant_colors": dominant_colors,
             "histogram_data": histogram_data
         }
-    except SecurityError as e:
+    except (SecurityError, ImageLimitError) as e:
         logger.warning(f"Security error processing image: {str(e)}")
         return {
             "success": False,

@@ -342,7 +342,8 @@ def main():
                 rgb_color = tuple(int(tc[i:i+2], 16) for i in (0, 2, 4))
                 config['replace_color'] = True
                 config['trans_color_rgb'] = rgb_color
-                config['trans_tolerance'] = trans_tolerance
+                # Slider is 0-100%; the processor compares channel values on a 0-255 scale
+                config['trans_tolerance'] = int(round(trans_tolerance * 255 / 100))
 
             if extract_colors:
                 config['extract_colors'] = True
@@ -378,17 +379,18 @@ def main():
 
                     # Submit tasks
                     future_to_file = {
-                        executor.submit(process_image_task, content, config): (name, size, content)
-                        for name, size, content in files_data
+                        executor.submit(process_image_task, content, config): (idx, name, size, content)
+                        for idx, (name, size, content) in enumerate(files_data)
                     }
 
                     completed_count = 0
                     for future in as_completed(future_to_file):
-                        name, original_bytes_size, content = future_to_file[future]
+                        upload_idx, name, original_bytes_size, content = future_to_file[future]
                         result = future.result()
 
                         if result['success']:
                             processed_images.append({
+                                "upload_index": upload_idx,
                                 "name": name,
                                 "original_size": original_bytes_size,
                                 "processed_size": result['processed_size'],
@@ -411,6 +413,9 @@ def main():
 
                         completed_count += 1
                         progress_bar.progress(completed_count / total_files, text=f"Processed {completed_count} of {total_files} images...")
+
+                # Threads finish in any order; show results in the order files were uploaded
+                processed_images.sort(key=lambda item: item["upload_index"])
 
                 # Generate Zip (Bolt Optimization: Cache ZIP generation to eliminate render-blocking I/O)
                 if processed_images:
@@ -479,7 +484,8 @@ def main():
         
         # Individual Previews
         st.subheader("Detailed Results")
-        for item in st.session_state.processed_images:
+        # item_idx keeps widget keys unique when two uploads share a filename stem
+        for item_idx, item in enumerate(st.session_state.processed_images):
             # Security: Sanitize filename for display and download
             safe_name = sanitize_filename(item['name'])
             name_stem = get_safe_filename_stem(item['name'])
@@ -505,7 +511,7 @@ def main():
                     cols = st.columns(len(item["dominant_colors"]))
                     for idx, color in enumerate(item["dominant_colors"]):
                         with cols[idx]:
-                            st.color_picker(f"Color {idx+1}", color, disabled=True, key=f"c_{name_stem}_{idx}", label_visibility="collapsed")
+                            st.color_picker(f"Color {idx+1}", color, disabled=True, key=f"c_{item_idx}_{idx}", label_visibility="collapsed")
                             st.caption(color)
 
                 if item.get("histogram_data"):
@@ -536,6 +542,7 @@ def main():
                     data=item['data'],
                     file_name=f"processed_{name_stem}.{item_format}",
                     mime=f"image/{mime_subtype}",
+                    key=f"dl_{item_idx}",
                     icon=":material/download:",
                     help=f"Download {safe_name}"
                 )
