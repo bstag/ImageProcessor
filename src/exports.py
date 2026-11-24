@@ -6,11 +6,13 @@ import html
 import io
 import json
 import zipfile
+from contextlib import ExitStack
 from typing import Any, Dict, List, Optional, Tuple
+from urllib.parse import quote
 
 from PIL import Image
 
-from processor import ImageProcessor
+from processor import ImageLimitError, ImageProcessor
 from utils import get_safe_filename_stem  # Security: strips paths to prevent zip slip
 
 # Favicon / touch icon / PWA / tile / store icon set: filename -> (size, style)
@@ -38,6 +40,7 @@ ICON_BACKGROUND = (255, 255, 255, 255)
 TRANSPARENT = (0, 0, 0, 0)
 
 RESPONSIVE_WIDTH_OPTIONS = [320, 640, 1024, 1280, 1920]
+MAX_PDF_PIXELS = 64_000_000
 
 
 def _square(image: Image.Image, size: int, background: Tuple[int, int, int, int],
@@ -152,11 +155,12 @@ def build_srcset_html(entries: List[Dict[str, Any]]) -> str:
     """
     tags = []
     for entry in entries:
-        sources = [f"{responsive_filename(entry['name_stem'], v['width'], entry['ext'])} {v['width']}w"
+        sources = [f"{quote(responsive_filename(entry['name_stem'], v['width'], entry['ext']))} {v['width']}w"
                    for v in entry['variants']]
-        sources.append(f"{entry['full_name']} {entry['full_width']}w")
+        full_url = quote(entry['full_name'])
+        sources.append(f"{full_url} {entry['full_width']}w")
         tags.append(
-            f'<img src="{html.escape(entry["full_name"])}"\n'
+            f'<img src="{full_url}"\n'
             f'     srcset="{html.escape(", ".join(sources))}"\n'
             f'     sizes="100vw" width="{entry["full_width"]}" height="{entry["full_height"]}"\n'
             f'     alt="{html.escape(entry["alt"])}" loading="lazy" decoding="async">'
@@ -173,10 +177,10 @@ def assign_output_names(items: List[Dict[str, Any]], ext: str) -> None:
     for item in items:
         base_stem = get_safe_filename_stem(item['name'])
         stem, counter = base_stem, 1
-        while stem in seen:
+        while stem.casefold() in seen:
             stem = f"{base_stem}_{counter}"
             counter += 1
-        seen.add(stem)
+        seen.add(stem.casefold())
         item['unique_stem'] = stem
         item['file_name'] = f"processed_{stem}.{ext}"
 
@@ -222,20 +226,30 @@ def build_pdf(images_data: List[bytes], resolution: float = 96.0) -> bytes:
     Combine encoded images (any format Pillow can read; first frame of animations)
     into one PDF with a page per image, sized to the image at `resolution` DPI.
     """
-    pages = []
-    for data in images_data:
-        page = Image.open(io.BytesIO(data))
-        page.seek(0)
-        if ImageProcessor.has_transparency(page):
-            flat = Image.new('RGB', page.size, (255, 255, 255))
-            rgba = page.convert('RGBA')
-            flat.paste(rgba, mask=rgba.getchannel('A'))
-            page = flat
-        else:
-            page = page.convert('RGB')
-        pages.append(page)
-    if not pages:
+    if not images_data:
         raise ValueError("No images to combine into a PDF")
-    buf = io.BytesIO()
-    pages[0].save(buf, 'PDF', save_all=True, append_images=pages[1:], resolution=resolution)
-    return buf.getvalue()
+
+    total_pixels = 0
+    pages = []
+    with ExitStack() as stack:
+        for data in images_data:
+            with Image.open(io.BytesIO(data)) as source:
+                total_pixels += source.width * source.height
+                if total_pixels > MAX_PDF_PIXELS:
+                    raise ImageLimitError(
+                        f"PDF pages exceed {MAX_PDF_PIXELS // 1_000_000} megapixels in total. "
+                        "Resize the images or combine fewer at a time."
+                    )
+                if ImageProcessor.has_transparency(source):
+                    page = Image.new('RGB', source.size, (255, 255, 255))
+                    stack.callback(page.close)
+                    with source.convert('RGBA') as rgba:
+                        page.paste(rgba, mask=rgba.getchannel('A'))
+                else:
+                    page = source.convert('RGB')
+                    stack.callback(page.close)
+                pages.append(page)
+
+        buf = io.BytesIO()
+        pages[0].save(buf, 'PDF', save_all=True, append_images=pages[1:], resolution=resolution)
+        return buf.getvalue()

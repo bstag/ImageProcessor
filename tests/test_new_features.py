@@ -8,9 +8,10 @@ from PIL import Image, ExifTags
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
+import exports
 import tasks
 from exports import build_pdf, build_srcset_html, make_icon_pack, make_responsive_variants
-from processor import ImageProcessor
+from processor import ImageLimitError, ImageProcessor
 from tasks import process_image_task
 
 
@@ -73,6 +74,13 @@ def test_unreachable_target_reports_not_met():
 def test_target_size_ignored_for_lossless_formats():
     result = process_image_task(encode(noisy()), {'output_format': 'PNG', 'target_size_kb': 5})
     assert result['target_size'] is None
+
+
+def test_target_size_respects_quality_ceilings_below_default_minimum():
+    result = process_image_task(encode(noisy()), {
+        'output_format': 'JPEG', 'target_size_kb': 200, 'quality': 0,
+    })
+    assert result['target_size'] == {'target_bytes': 200 * 1024, 'quality': 0, 'met': True}
 
 
 # --- Format comparison ------------------------------------------------------
@@ -173,6 +181,31 @@ def test_animation_frame_limit(monkeypatch):
     assert "Animation is too large" in result['error']
 
 
+@pytest.mark.parametrize("fmt", ["WEBP", "AVIF"])
+def test_animation_preserves_per_frame_timing(fmt):
+    frames = [Image.new("RGB", (20, 20), color) for color in ("red", "green", "blue")]
+    expected = [240, 400, 760]
+    source = encode(frames[0], fmt, save_all=True, append_images=frames[1:], duration=expected)
+    result = process_image_task(source, {'output_format': 'WEBP'})
+    assert result['success'], result.get('error')
+    with decode(result['data']) as output:
+        durations = []
+        for index in range(output.n_frames):
+            output.seek(index)
+            output.load()
+            durations.append(output.info['duration'])
+    assert durations == expected
+
+
+def test_animation_pixel_limit_accounts_for_upscaling(monkeypatch):
+    monkeypatch.setattr(tasks, 'MAX_EDITED_ANIMATION_PIXELS', 8_000)
+    source = animated_gif()
+    settings = {'output_format': 'WEBP', 'resize_type': 'Percentage', 'percentage': 200}
+    result = process_image_task(source, settings)
+    assert not result['success']
+    assert "Edited animation is too large" in result['error']
+
+
 # --- Icon pack ----------------------------------------------------------------
 
 ICON_FILES = {
@@ -264,6 +297,14 @@ def test_pdf_requires_images():
         build_pdf([])
 
 
+def test_pdf_checks_total_page_pixels(monkeypatch):
+    monkeypatch.setattr(exports, 'MAX_PDF_PIXELS', 700)
+    page = encode(Image.new('RGB', (20, 20)))
+    assert build_pdf([page]).startswith(b'%PDF')
+    with pytest.raises(ImageLimitError, match='PDF pages exceed'):
+        build_pdf([page, page])
+
+
 # --- Results ZIP --------------------------------------------------------------
 
 def test_results_zip_layout_and_unique_names():
@@ -274,15 +315,27 @@ def test_results_zip_layout_and_unique_names():
     items = [
         {'name': '../../evil/photo.png', 'data': b'one', 'responsive': variants, 'processed_dimensions': (800, 400),
          'icons': {'favicon.ico': b'ico'}, 'alt': 'photo.png'},
-        {'name': 'photo.jpg', 'data': b'two', 'responsive': [], 'icons': None},
+        {'name': 'PHOTO.jpg', 'data': b'two', 'responsive': [], 'icons': None},
     ]
     assign_output_names(items, 'webp')
-    assert [item['file_name'] for item in items] == ['processed_photo.webp', 'processed_photo_1.webp']
+    assert [item['file_name'] for item in items] == ['processed_photo.webp', 'processed_PHOTO_1.webp']
 
     archive = zipfile.ZipFile(io.BytesIO(build_results_zip(items, 'webp', pdf_data=b'%PDF')))
     assert sorted(archive.namelist()) == sorted([
-        'processed_photo.webp', 'processed_photo_1.webp', 'responsive/photo-320w.webp',
+        'processed_photo.webp', 'processed_PHOTO_1.webp', 'responsive/photo-320w.webp',
         'icons/photo/favicon.ico', 'srcset.html', 'processed_images.pdf',
     ])
     assert 'responsive/photo-320w.webp 320w, processed_photo.webp 800w' in archive.read('srcset.html').decode()
     assert all('..' not in name for name in archive.namelist())
+
+
+def test_srcset_percent_encodes_filename_segments():
+    snippet = build_srcset_html([{
+        'full_name': 'processed_Café #1, edit.webp', 'full_width': 640, 'full_height': 320,
+        'name_stem': 'Café #1, edit', 'ext': 'webp',
+        'alt': 'Café #1, edit', 'variants': [{'width': 320}],
+    }])
+    encoded = 'Caf%C3%A9%20%231%2C%20edit'
+    assert f'src="processed_{encoded}.webp"' in snippet
+    assert f'srcset="responsive/{encoded}-320w.webp 320w, processed_{encoded}.webp 640w"' in snippet
+    assert 'alt="Café #1, edit"' in snippet
