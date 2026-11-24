@@ -1,191 +1,126 @@
+import io
+from pathlib import Path
+
 import pytest
-from unittest.mock import MagicMock, patch, ANY
-import sys
-import os
+from PIL import Image
+from streamlit.testing.v1 import AppTest
 
-# Need to set up sys.modules for streamlit before importing app
-mock_st = MagicMock()
-sys.modules["streamlit"] = mock_st
+import batch
 
-class MockSessionState(dict):
-    def __getattr__(self, key):
-        try:
-            return self[key]
-        except KeyError:
-            raise AttributeError(key)
-    def __setattr__(self, key, value):
-        self[key] = value
 
-# Mock streamlit attributes that are accessed directly
-mock_st.sidebar = MagicMock()
-mock_st.session_state = MockSessionState()
-mock_st.columns.side_effect = lambda n: [MagicMock() for _ in range(n)]
-mock_st.sidebar.columns.side_effect = lambda n: [MagicMock() for _ in range(n)]
-mock_st.sidebar.expander.return_value.__enter__.return_value = MagicMock()
-mock_st.expander.return_value.__enter__.return_value = MagicMock()
-mock_st.spinner.return_value.__enter__.return_value = MagicMock()
+APP = Path(__file__).resolve().parents[1] / "src" / "app.py"
 
-# Now we can import app
-from src.app import main
 
-@pytest.fixture(autouse=True)
-def reset_st():
-    # Reset mocks before each test
-    mock_st.reset_mock()
-    mock_st.sidebar.reset_mock()
-    mock_st.button.side_effect = None  # Clear any side effects
-    mock_st.session_state = MockSessionState()
-    
-    # Setup default return values
-    mock_st.file_uploader.return_value = []
-    mock_st.sidebar.selectbox.return_value = "JPEG"
-    mock_st.sidebar.slider.return_value = 80
-    mock_st.sidebar.checkbox.return_value = False
-    mock_st.checkbox.return_value = False
-    mock_st.sidebar.radio.return_value = "Rescaling"
-    mock_st.sidebar.number_input.return_value = 100
-    mock_st.sidebar.text_input.return_value = ""
-    mock_st.sidebar.color_picker.return_value = "#FFFFFF"
-    mock_st.color_picker.return_value = "#FFFFFF"
-    mock_st.slider.return_value = 1
-    mock_st.button.return_value = False
-  
-def test_app_initial_render():
-    """Test that the app renders the initial state correctly."""
-    main()
-    
-    mock_st.set_page_config.assert_called_once()
-    mock_st.title.assert_called_once()
-    mock_st.file_uploader.assert_called_once()
-    
-    # Verify sidebar elements
-    mock_st.sidebar.header.assert_called_with("Settings")
-    mock_st.sidebar.subheader.assert_any_call("Output Format")
-    
-    # Verify welcome message when no files uploaded
-    mock_st.markdown.assert_any_call("### 👋 Welcome to Image Processor!")
+@pytest.fixture
+def app():
+    return AppTest.from_file(str(APP), default_timeout=15).run()
 
-@patch("src.app.validate_upload_constraints")
-@patch("src.app.ThreadPoolExecutor")
-def test_app_process_flow(mock_executor, mock_validate):
-    """Test the image processing flow."""
-    # Setup inputs
-    mock_file = MagicMock()
-    mock_file.name = "test.jpg"
-    mock_file.size = 1024
-    mock_file.getvalue.return_value = b"fake_image_data"
-    
-    mock_st.file_uploader.return_value = [mock_file]
-    mock_validate.return_value = (True, "")
-    
-    # Mock the process button
-    def button_side_effect(label, **kwargs):
-        if "Process" in label:
-            return True
-        return False
-    mock_st.button.side_effect = button_side_effect
 
-    # Mock executor
-    mock_future = MagicMock()
-    mock_future.result.return_value = {
-        "success": True,
-        "processed_size": 500,
-        "data": b"processed_data",
-        "has_transparency": False,
-        "dominant_colors": ["#FFFFFF"],
-        "histogram_data": {"Red": [0]*256},
-        "error": None
-    }
-    
-    # Mock context manager for executor
-    mock_executor_instance = mock_executor.return_value.__enter__.return_value
-    mock_executor_instance.submit.return_value = mock_future
-    
-    # We need to mock as_completed to yield our future
-    with patch("src.app.as_completed", return_value=[mock_future]):
-        main()
-    
-    # Validation should be called
-    mock_validate.assert_called_once()
-    
-    # Success message (toast)
-    mock_st.toast.assert_called_with("Processing Complete!", icon='🎉')
-    
-    # Results should be stored in session state
-    assert mock_st.session_state["processed_images"] is not None
-    assert len(mock_st.session_state["processed_images"]) == 1
-    assert mock_st.session_state["processed_images"][0]["name"] == "test.jpg"
+def png(name, color="red"):
+    buffer = io.BytesIO()
+    Image.new("RGB", (32, 32), color).save(buffer, "PNG")
+    return name, buffer.getvalue(), "image/png"
 
-@patch("src.app.validate_upload_constraints")
-def test_app_validation_failure(mock_validate):
-    """Test that validation failure prevents processing."""
-    mock_file = MagicMock()
-    mock_st.file_uploader.return_value = [mock_file]
-    
-    mock_validate.return_value = (False, "Too many files")
-    
-    main()
-    
-    mock_st.error.assert_called_with("Upload limit exceeded: Too many files")
-    # Button should not be clicked (or if it is, processing shouldn't start, but here the button isn't even shown if valid is false? 
-    # Logic in app.py: if not is_valid: st.error ... elif st.button ...
-    # So st.button is NOT called if invalid.
-    mock_st.button.assert_not_called()
 
-def test_app_sidebar_logic():
-    """Test dynamic sidebar logic."""
-    # Test WEBP + Lossless
-    mock_st.sidebar.selectbox.return_value = "WEBP"
-    mock_st.sidebar.checkbox.side_effect = lambda label, **kwargs: True if "Lossless" in label else False
-    
-    main()
-    
-    # Check if quality slider is disabled (it is when lossless is True)
-    # We can inspect the calls to slider
-    # quality_val = st.sidebar.slider("Quality", ..., disabled=True, ...)
-    slider_calls = mock_st.sidebar.slider.call_args_list
-    quality_call = next((call for call in slider_calls if call[0][0] == "Quality"), None)
-    assert quality_call is not None
-    assert quality_call.kwargs.get("disabled") is True
+def upload(app, *files):
+    app.file_uploader[0].set_value(files).run()
 
-def test_svg_settings():
-    """Test SVG specific settings appear."""
-    mock_st.sidebar.selectbox.return_value = "SVG"
-    
-    main()
-    
-    mock_st.sidebar.expander.assert_any_call("SVG Settings", expanded=True, icon=":material/polyline:")
 
-def test_results_display():
-    """Test the results display logic."""
-    # Ensure we enter the main block
-    mock_file = MagicMock()
-    mock_file.size = 1000
-    mock_st.file_uploader.return_value = [mock_file]
-    
-    # Populate session state directly
-    mock_st.session_state["processed_images"] = [{
-        "name": "test.jpg",
-        "original_size": 1000,
-        "processed_size": 500,
-        "data": b"processed",
-        "original_data": b"orig",
-        "has_transparency": False,
-        "dominant_colors": ["#FFFFFF"]
-    }]
-    mock_st.session_state["zip_data"] = b"zipdata"
-    
-    # Ensure st.columns returns iterable to avoid unpacking error
-    mock_st.columns.side_effect = lambda n: [MagicMock() for _ in range(n)]
+def click(app, label):
+    next(button for button in app.button if button.label.startswith(label)).click().run()
 
-    main()
-    
-    # Should show metrics
-    mock_st.columns.assert_any_call(3)
 
-    # Should show detailed results
-    mock_st.subheader.assert_any_call("Detailed Results")
-    
-    # Should show download button
-    mock_st.download_button.assert_called()
+def download_labels(app):
+    return [button.proto.label.replace("\\.", ".") for button in app.get("download_button")]
 
+
+def test_app_initial_render(app):
+    assert not app.exception
+    assert app.title[0].value == "Image Processing & Optimization"
+    assert app.file_uploader[0].accept_multiple_files
+    assert not download_labels(app)
+
+
+def test_preset_resets_conflicting_settings(app):
+    app.checkbox(key="opt_lossless").check().run()
+    assert app.slider(key="opt_quality").proto.disabled
+
+    app.selectbox(key="opt_preset").select("Web").run()
+    assert not app.checkbox(key="opt_lossless").value
+    assert not app.slider(key="opt_quality").proto.disabled
+    assert app.slider(key="opt_quality").value == 80
+
+    app.checkbox(key="opt_target_size").check().run()
+    assert app.selectbox(key="opt_preset").value == "Custom"
+    app.selectbox(key="opt_preset").select("Email").run()
+    assert not app.checkbox(key="opt_target_size").value
+    assert app.selectbox(key="opt_format").value == "JPEG"
+
+
+@pytest.mark.parametrize(("format_name", "lossless", "pdf"), [
+    ("AVIF", False, True),
+    ("SVG", False, False),
+    ("WEBP", True, True),
+])
+def test_format_capabilities(app, format_name, lossless, pdf):
+    app.selectbox(key="opt_format").select(format_name).run()
+    pdf_box = next(box for box in app.checkbox if box.label == "Combine into PDF")
+    assert app.checkbox(key="opt_lossless").proto.disabled == (not lossless)
+    assert pdf_box.proto.disabled == (not pdf)
+
+
+def test_results_identify_previous_batch_and_can_be_cleared(app):
+    upload(app, png("first.png"))
+    click(app, "Process ")
+    assert not app.exception
+    assert "Download first.png" in download_labels(app)
+
+    app.slider(key="opt_quality").set_value(65).run()
+    assert any(title.value == "Last processed batch" for title in app.subheader)
+
+    upload(app, png("second.png", "blue"))
+    assert "Download first.png" in download_labels(app)
+    assert any("Uploads or settings changed" in info.value for info in app.info)
+
+    click(app, "Clear Results")
+    assert not download_labels(app)
+
+
+@pytest.mark.parametrize("include_valid", [True, False])
+def test_processing_reports_successes_and_failures(app, include_valid):
+    files = [("invalid.png", b"not an image", "image/png")]
+    if include_valid:
+        files.append(png("valid.png"))
+    upload(app, *files)
+    click(app, "Process ")
+
+    assert not app.exception
+    assert any("Invalid or corrupt image file" in error.value for error in app.error)
+    assert f"{int(include_valid)} succeeded, 1 failed" in [caption.value for caption in app.caption]
+    assert ("Download valid.png" in download_labels(app)) == include_valid
+
+
+def test_app_validation_failure(app):
+    upload(app, *(png(f"{index}.png") for index in range(51)))
+    assert any("Maximum allowed is 50" in error.value for error in app.error)
+    assert not any(button.label.startswith("Process ") for button in app.button)
+
+
+@pytest.mark.parametrize("failed_export", ["zip", "pdf"])
+def test_export_failure_preserves_current_batch_downloads(app, monkeypatch, failed_export):
+    next(box for box in app.checkbox if box.label == "Combine into PDF").check().run()
+    upload(app, png("first.png"))
+    click(app, "Process ")
+    assert set(download_labels(app)) == {"Download first.png", "Download PDF", "Download All as ZIP"}
+
+    def fail(*args, **kwargs):
+        raise OSError("simulated export failure")
+
+    monkeypatch.setattr(batch, "build_results_zip" if failed_export == "zip" else "build_pdf", fail)
+    upload(app, png("second.png", "blue"))
+    click(app, "Process ")
+
+    assert not app.exception
+    assert any("Individual images are still available" in warning.value for warning in app.warning)
+    available_export = "Download PDF" if failed_export == "zip" else "Download All as ZIP"
+    assert set(download_labels(app)) == {"Download second.png", available_export}

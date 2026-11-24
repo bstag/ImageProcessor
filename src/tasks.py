@@ -11,6 +11,7 @@ logger = setup_logging()
 # Security: limits for animated inputs, which multiply work by their frame count
 MAX_ANIMATION_FRAMES = 300
 MAX_ANIMATION_PIXELS = 150_000_000  # width * height * frames
+MAX_EDITED_ANIMATION_PIXELS = 64_000_000
 
 
 class SecurityError(ValueError):
@@ -121,11 +122,11 @@ def apply_watermark(image: Image.Image, config: Dict[str, Any]) -> Image.Image:
     )
 
 
-def _save_kwargs(config: Dict[str, Any]) -> Dict[str, Any]:
+def _save_kwargs(config: Dict[str, Any], output_format: str) -> Dict[str, Any]:
     return {
         'optimize': config.get('optimize_encoding', False),
         'strip_metadata': config.get('strip_metadata', True),
-        'lossless': config.get('lossless', False),
+        'lossless': output_format in ImageProcessor.LOSSLESS_OPTION_FORMATS and config.get('lossless', False),
     }
 
 
@@ -140,15 +141,23 @@ def _process_animation(image: Image.Image, config: Dict[str, Any]) -> Dict[str, 
 
     frames: List[Image.Image] = []
     durations: List[int] = []
+    loop = int(image.info.get('loop', 0))
     for frame in ImageSequence.Iterator(image):
-        durations.append(int(frame.info.get('duration', 100)) or 100)
-        edited = apply_edits(ImageProcessor.normalize_mode(frame.convert('RGBA')), config)
+        frame.load()
+        duration = frame.info.get('duration')
+        durations.append(100 if duration is None else round(duration))
+        edited = apply_edits(ImageProcessor.normalize_mode(frame).convert('RGBA'), config)
+        if not frames and frame_count * edited.width * edited.height > MAX_EDITED_ANIMATION_PIXELS:
+            raise ImageLimitError(
+                f"Edited animation is too large ({frame_count} frames at {edited.width}x{edited.height}). "
+                f"Reduce the output dimensions to stay within {MAX_EDITED_ANIMATION_PIXELS // 1_000_000} megapixels total."
+            )
         frames.append(apply_watermark(edited, config))
 
     output = ImageProcessor.save_animation(
         frames, durations, config.get('output_format', 'WEBP'),
         quality=config.get('quality', 80), lossless=config.get('lossless', False),
-        loop=int(image.info.get('loop', 0))
+        loop=loop
     )
     return {'data': output.getvalue(), 'first_frame': frames[0], 'frame_count': frame_count}
 
@@ -261,7 +270,7 @@ def process_image_task(file_content: bytes, config: Dict[str, Any]) -> Dict[str,
                 result['icons'] = make_icon_pack(image)
 
             final_image = apply_watermark(image, config)
-            save_kwargs = _save_kwargs(config)
+            save_kwargs = _save_kwargs(config, output_format)
             quality = config.get('quality', 80)
 
             # Save/Optimize

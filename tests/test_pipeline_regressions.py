@@ -48,6 +48,16 @@ def test_custom_crop_never_produces_empty_image(noisy_png):
     assert decode(result['data']).size == (1, 1)
 
 
+@pytest.mark.parametrize(("size", "ratio"), [((1, 12), (16, 9)), ((12, 1), (9, 16))])
+def test_aspect_crop_keeps_one_pixel_on_thin_images(size, ratio):
+    result = process_image_task(encode(Image.new('RGB', size)), {
+        'output_format': 'PNG', 'crop_mode': 'Aspect Center',
+        'crop_aspect_w': ratio[0], 'crop_aspect_h': ratio[1],
+    })
+    assert result['success'], result.get('error')
+    assert decode(result['data']).size == (1, 1)
+
+
 def test_exif_orientation_is_applied():
     exif = Image.new('RGB', (1, 1)).getexif()
     exif[0x0112] = 6  # Rotated 90 CW
@@ -81,6 +91,25 @@ def test_transparency_flattens_to_white_for_jpeg():
     result = process_image_task(transparent, {'output_format': 'JPEG'})
     r, g, b = decode(result['data']).getpixel((5, 5))
     assert min(r, g, b) > 245
+
+
+@pytest.mark.parametrize(("mode", "key", "opaque"), [
+    ('RGB', (255, 0, 0), (0, 0, 255)),
+    ('L', 42, 43),
+    ('I;16', 1024, 1025),
+])
+@pytest.mark.parametrize("grayscale", [False, True])
+def test_metadata_stripping_preserves_png_color_key_transparency(mode, key, opaque, grayscale):
+    image = Image.new(mode, (2, 1))
+    image.putpixel((0, 0), key)
+    image.putpixel((1, 0), opaque)
+    result = process_image_task(encode(image, transparency=key), {
+        'output_format': 'PNG', 'strip_metadata': True, 'grayscale': grayscale,
+    })
+    assert result['success'], result.get('error')
+    assert result['has_transparency']
+    alpha = decode(result['data']).convert('RGBA').getchannel('A')
+    assert alpha.tobytes() == b'\x00\xff'
 
 
 def test_fixed_dimensions_with_aspect_scales_up():

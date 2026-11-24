@@ -22,7 +22,7 @@ A powerful, user-friendly web application built with **Streamlit** and **Pillow 
 *   **Format Comparison**: See each result's size as WebP, AVIF, JPEG and PNG side by side.
 *   **Compression Control**:
     *   Adjustable **Quality Slider** (0-100).
-    *   **Lossless Mode** for WebP and AVIF.
+    *   **Lossless Mode** for WebP.
     *   **Vectorization Settings** for SVG (Color Mode, Layering, Smoothing, etc.).
 *   **Metadata Stripping**: Removes EXIF data (camera, location, etc.) while keeping the color profile so colors stay accurate.
 *   **Metadata Viewer**: Shows what each photo contained (camera, lens, date, software, author) and warns when it has GPS location data.
@@ -54,7 +54,7 @@ A powerful, user-friendly web application built with **Streamlit** and **Pillow 
 *   **Persistence**: Processed results stay available during downloads (won't disappear on click).
 *   **Notifications**: Non-intrusive toast notifications for status updates.
 *   **Security & Safety**:
-    *   **Input Validation**: Enforces limits on file count (50), total size (200MB), image dimensions (6000px), animation size (300 frames) and SVG tracing size to prevent resource exhaustion.
+    *   **Input Validation**: Enforces limits on file count (50), total upload size (200 MB), image dimensions (6000 px), animation size (300 frames and 64 megapixels after editing), and SVG tracing size. Combined PDFs support up to 64 megapixels across all pages.
     *   **Sanitization**: Automatically sanitizes filenames to prevent path traversal issues during export.
 *   **Export**: Download individual files or get everything (including responsive sizes, icons and the PDF) in a single **ZIP archive**.
 

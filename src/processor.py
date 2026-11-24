@@ -18,6 +18,11 @@ class ImageProcessor:
     MAX_IMAGE_DIMENSION = 6000
     # Longest side traced when vectorizing; larger inputs are downscaled first
     MAX_SVG_DIMENSION = 1500
+    LOSSY_FORMATS = ('JPEG', 'WEBP', 'AVIF')
+    LOSSLESS_OPTION_FORMATS = ('WEBP',)
+    ANIMATED_FORMATS = ('WEBP', 'AVIF', 'PNG')
+    OPAQUE_FORMATS = ('JPEG', 'JPG', 'BMP')
+    RASTER_OUTPUT_FORMATS = ('WEBP', 'AVIF', 'JPEG', 'PNG', 'BMP')
 
     # Modes each output format can write directly; anything else is converted before saving.
     SAVEABLE_MODES = {
@@ -33,6 +38,9 @@ class ImageProcessor:
         Convert uncommon modes (palette, 1-bit, 16-bit, CMYK, ...) to L/LA/RGB/RGBA so every
         enhancement, filter and encoder in the pipeline can handle the image.
         """
+        transparent_value = image.info.get('transparency')
+        if transparent_value is not None and not image.mode.startswith('I;16'):
+            return image.convert('RGBA')
         if image.mode in ('RGB', 'RGBA', 'L', 'LA'):
             return image
         if image.mode in ('P', 'PA'):
@@ -43,9 +51,16 @@ class ImageProcessor:
             # 16/32-bit grayscale: a plain convert('L') clips everything above 255 to white,
             # so scale down to 8 bits when the data actually uses the wider range.
             _, hi = image.getextrema()
-            if hi > 255:
-                return image.convert('I').point(lambda v: v * (1 / 256)).convert('L')
-            return image.convert('L')
+            wide = image if image.mode == 'I' else image.convert('I')
+            scaled = wide.point(lambda v: v * (1 / 256)) if hi > 255 else wide
+            gray = scaled.convert('L')
+            if image.mode.startswith('I;16') and transparent_value is not None:
+                # Compare the original samples, since scaling may map distinct values to the same gray.
+                alpha = [255] * 65_536
+                alpha[transparent_value] = 0
+                gray.putalpha(wide.point(alpha, 'L'))
+                gray.info.pop('transparency', None)
+            return gray
         if image.mode == 'F':
             return image.convert('L')
         return image.convert('RGB')
@@ -58,13 +73,13 @@ class ImageProcessor:
         target_ratio = target_w / target_h
         current_ratio = w / h
         if current_ratio > target_ratio:
-            new_w = int(h * target_ratio)
+            new_w = max(1, int(h * target_ratio))
             left = (w - new_w) // 2
             right = left + new_w
             top = 0
             bottom = h
         else:
-            new_h = int(w / target_ratio)
+            new_h = max(1, int(w / target_ratio))
             top = (h - new_h) // 2
             bottom = top + new_h
             left = 0
@@ -272,7 +287,7 @@ class ImageProcessor:
         Applies geometric transformations and filters.
         """
         if grayscale:
-            image = image.convert('L') # Bolt Optimization: Return 'L' mode directly to save memory (1/3 size) and speed up subsequent ops
+            image = image.convert('LA' if 'A' in image.getbands() else 'L')
 
         if rotate != 0:
             # Bolt Optimization: Use transpose for 90-degree rotations instead of rotate(expand=True).
@@ -356,9 +371,7 @@ class ImageProcessor:
         """
         Checks if the image has transparency (alpha channel or transparency info).
         """
-        if image.mode in ('RGBA', 'LA', 'PA') or (image.mode == 'P' and 'transparency' in image.info):
-            return True
-        return False
+        return image.has_transparency_data
 
     @staticmethod
     def replace_color_with_transparency(image: Image.Image, target_color: Tuple[int, int, int], tolerance: int = 0) -> Image.Image:
@@ -464,6 +477,8 @@ class ImageProcessor:
         Process the image (conversion, compression) and return the bytes.
         """
         fmt = 'JPEG' if output_format.upper() == 'JPG' else output_format.upper()
+        if 'transparency' in image.info:
+            image = ImageProcessor.normalize_mode(image)
         allowed_modes = ImageProcessor.SAVEABLE_MODES.get(fmt)
         if allowed_modes is not None and image.mode not in allowed_modes:
             image = ImageProcessor.normalize_mode(image)
@@ -484,9 +499,8 @@ class ImageProcessor:
             "optimize": optimize
         }
 
-        # Add lossless param if supported (WebP, AVIF)
-        if output_format.upper() in ['WEBP', 'AVIF']:
-             save_args['lossless'] = lossless
+        if fmt in ImageProcessor.LOSSLESS_OPTION_FORMATS:
+            save_args['lossless'] = lossless
 
         if not optimize:
              # Bolt Optimization: When saving PNGs without explicit optimization, use compress_level=1.
@@ -532,9 +546,6 @@ class ImageProcessor:
         output.seek(0)
         return output
 
-    # Formats where a quality setting changes the file size
-    LOSSY_FORMATS = ('JPEG', 'WEBP', 'AVIF')
-
     @staticmethod
     def encode_to_target_size(image: Image.Image, output_format: str, target_bytes: int, max_quality: int = 95,
                               min_quality: int = 5, **save_kwargs: Any) -> Tuple[io.BytesIO, int, bool]:
@@ -544,7 +555,8 @@ class ImageProcessor:
         the min_quality encoding is returned with target_met=False.
         """
         best = None
-        lo, hi = min_quality, max(min_quality, max_quality)
+        min_quality = min(min_quality, max_quality)
+        lo, hi = min_quality, max_quality
         smallest = None
         while lo <= hi:
             quality = (lo + hi) // 2
@@ -632,9 +644,6 @@ class ImageProcessor:
             return ImageOps.pad(image, size, Image.Resampling.LANCZOS, color=color)
         return ImageOps.fit(image, size, Image.Resampling.LANCZOS)
 
-    # Output formats that can store an animation (PNG is written as APNG)
-    ANIMATED_FORMATS = ('WEBP', 'AVIF', 'PNG')
-
     @staticmethod
     def save_animation(frames: List[Image.Image], durations: List[int], output_format: str, quality: int = 85,
                        lossless: bool = False, loop: int = 0) -> io.BytesIO:
@@ -645,8 +654,10 @@ class ImageProcessor:
         frames = [f if f.mode in ('RGB', 'RGBA') else f.convert('RGBA') for f in frames]
         save_args: Dict[str, Any] = {'format': fmt, 'save_all': True, 'append_images': frames[1:],
                                      'duration': durations, 'loop': loop}
-        if fmt in ('WEBP', 'AVIF'):
-            save_args.update(quality=quality, lossless=lossless)
+        if fmt in ImageProcessor.LOSSY_FORMATS:
+            save_args['quality'] = quality
+        if fmt in ImageProcessor.LOSSLESS_OPTION_FORMATS:
+            save_args['lossless'] = lossless
         output = io.BytesIO()
         frames[0].save(output, **save_args)
         output.seek(0)
